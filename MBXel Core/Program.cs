@@ -39,10 +39,10 @@ namespace MBXel_Core
             /*Export data*/
             /*--------------------*/
 
-            //XLExporter exporter = new XLExporter();
+            XLExporter exporter = new XLExporter();
 
-            //await exporter.ExportAsync(Orders, Environment.GetFolderPath(Environment.SpecialFolder.Desktop) + "\\XXXX");
-            //Console.WriteLine("Saved");
+            await exporter.ExportAsync(Orders, Environment.GetFolderPath(Environment.SpecialFolder.Desktop) + "\\XXXX");
+            Console.WriteLine("Saved");
 
             Console.ReadKey();
         }
