@@ -1,7 +1,5 @@
 ﻿using MBXel_Core.Core;
 
-using Spire.Xls;
-
 using System;
 using System.Collections.Generic;
 
@@ -29,22 +27,30 @@ namespace MBXel_Core
 
         static async System.Threading.Tasks.Task Main(string[] args)
         {
+
             //---------------------------------------------------------------------------------------------------------
             //Examples
             //---------------------------------------------------------------------------------------------------------
 
 
-
             /*--------------------*/
             /*Export data*/
             /*--------------------*/
-
-            XLExporter exporter = new XLExporter();
-
+            var exporter = new XLExporter();
             await exporter.ExportAsync(Orders, Environment.GetFolderPath(Environment.SpecialFolder.Desktop) + "\\XXXX");
             Console.WriteLine("Saved");
 
+            /*----------------------------------------*/
+            /*Export data with a custom column headers*/
+            /*----------------------------------------*/
+            //var headers = new List<string> { "Order ID", "Customer", "Product name", "Price" };
+            //var exporter = new XLExporter();
+            //await exporter.ExportAsync(Orders, Environment.GetFolderPath(Environment.SpecialFolder.Desktop) + "\\XXXX", headers);
+            //Console.WriteLine("Saved");
+
+
             Console.ReadKey();
+
         }
     }
 }
