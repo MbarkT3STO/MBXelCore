@@ -40,10 +40,9 @@ namespace MBXel_Core.Core
 
             // Set Excel version
             _excelVersion = version;
-
         }
 
-        private void PrepaireTheWorkSheetHeaders()
+        private void PrepareTheWorkSheetHeaders()
         {
             // Prepaire column headers
             for (int i = 0; i < _properties.Length; i++)
@@ -52,7 +51,7 @@ namespace MBXel_Core.Core
             }
         }
 
-        private void PrepaireTheWorkSheetHeaders(List<string> columnHeaders)
+        private void PrepareTheWorkSheetHeaders(List<string> columnHeaders)
         {
             if (columnHeaders.Count == _properties.Length)
             {
@@ -68,7 +67,7 @@ namespace MBXel_Core.Core
             }
         }
 
-        private void PrepaireTheWorkSheetData<T>(List<T> data)
+        private void PrepareTheWorkSheetData<T>(List<T> data)
         {
             // Put data into worksheet
                 int rowIndex = 2;
@@ -117,40 +116,38 @@ namespace MBXel_Core.Core
 
         private async void _Export<T>(List<T> data, string path, Enums.XLExtension extension, ExcelVersion version)
         {
-            // Prepaire the Workbook and Worksheet
+            // Prepare the Workbook and Worksheet
             ConfigureProps<T>(version);
         
-            // Prepaire data
-            await Task.Run(() => PrepaireTheWorkSheetData(data));
+            // Prepare data
+            await Task.Run(() => PrepareTheWorkSheetData(data));
 
-            // Prepaire column headers
-            await Task.Run(() => PrepaireTheWorkSheetHeaders());
+            // Prepare column headers
+            await Task.Run(() => PrepareTheWorkSheetHeaders());
 
             // Styling the worksheet
             await Task.Run(() => StylingTheWorkSheet(data.Count));
 
             // Save the workbook 
-            //_workBook.SaveToFile(path + (extension is Enums.XLExtension.Xlsx ? ".xlsx" : ".xls"), version);
             string wbookPath = path + (extension is Enums.XLExtension.Xlsx ? ".xlsx" : ".xls");
             SaveTheWorkBook(wbookPath);
         }
 
         private async void _Export<T>(List<T> data, string path, List<string> columnHeaders, Enums.XLExtension extension, ExcelVersion version)
         {
-            // Prepaire the Workbook and Worksheet
+            // Prepare the Workbook and Worksheet
             ConfigureProps<T>(version);
 
-            // Prepaire column headers
-            await Task.Run(() => PrepaireTheWorkSheetHeaders(columnHeaders));
+            // Prepare column headers
+            await Task.Run(() => PrepareTheWorkSheetHeaders(columnHeaders));
 
-            // Prepaire data
-            await Task.Run(() => PrepaireTheWorkSheetData(data));
+            // Prepare data
+            await Task.Run(() => PrepareTheWorkSheetData(data));
 
             // Styling the worksheet
             await Task.Run(() => StylingTheWorkSheet(data.Count));
 
             //Save the workbook 
-            //_workBook.SaveToFile(path + (extension is Enums.XLExtension.Xlsx ? ".xlsx" : ".xls"), version);
             string wbookPath = path + (extension is Enums.XLExtension.Xlsx ? ".xlsx" : ".xls");
             SaveTheWorkBook(wbookPath);
         }
