@@ -14,7 +14,7 @@ namespace MBXel_Core.Core
     /// <summary>
     /// Export a <see cref="List{T}"/> as an Excel file
     /// </summary>
-    class XLExporter
+    public class XLExporter
     {
         #region Private properties
 

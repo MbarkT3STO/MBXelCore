@@ -4,7 +4,6 @@
     <OutputType>Exe</OutputType>
     <TargetFramework>net5.0</TargetFramework>
     <RootNamespace>MBXel_Core</RootNamespace>
-    <ApplicationIcon>D:\Logo\12715467_1048221511901957_8409655708148977738_n.ico</ApplicationIcon>
     <Description>Free and Open-source library to Export and Import data as Excel file</Description>
     <Copyright>MB-WAR</Copyright>
     <RepositoryUrl>https://dev.azure.com/MB-Solutions/_git/MBXelCore</RepositoryUrl>
@@ -14,6 +13,7 @@
     <PackageId>MBXelCore</PackageId>
     <Authors>MBARK T3STO</Authors>
     <Company>T3STO</Company>
+    <ApplicationIcon>D:\Logo\12715467_1048221511901957_8409655708148977738_n.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
