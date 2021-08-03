@@ -17,22 +17,17 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="LinqToExcel" Version="2.0.0-PRERELEASE-2" />
-    <PackageReference Include="Remotion.Linq" Version="2.2.0" />
-    <PackageReference Include="System.Data.OleDb" Version="5.0.0" />
-    <PackageReference Include="System.Drawing.Common" Version="5.0.2" />
+    <Compile Remove="RefProj\**" />
+    <EmbeddedResource Remove="RefProj\**" />
+    <None Remove="RefProj\**" />
   </ItemGroup>
 
   <ItemGroup>
-    <Reference Include="Spire.License">
-      <HintPath>bin\Debug\net5.0\Spire.License.dll</HintPath>
-    </Reference>
-    <Reference Include="Spire.Pdf">
-      <HintPath>bin\Debug\net5.0\Spire.Pdf.dll</HintPath>
-    </Reference>
-    <Reference Include="Spire.XLS">
-      <HintPath>bin\Debug\net5.0\Spire.XLS.dll</HintPath>
-    </Reference>
+    <PackageReference Include="LinqToExcel" Version="2.0.0-PRERELEASE-2" />
+    <PackageReference Include="MBOfficeCoreSpireBase" Version="5.3.0.1" />
+    <PackageReference Include="Remotion.Linq" Version="2.2.0" />
+    <PackageReference Include="System.Data.OleDb" Version="5.0.0" />
+    <PackageReference Include="System.Drawing.Common" Version="5.0.2" />
   </ItemGroup>
 
 </Project>
