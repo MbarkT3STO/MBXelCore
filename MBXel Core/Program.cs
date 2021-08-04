@@ -202,6 +202,36 @@ namespace MBXel_Core
             //await workbook.SaveAsync();
             //Console.WriteLine("Saved");
 
+            //---------------------------------------------------------------------------------------------------------
+            // Using chaining methods
+            //---------------------------------------------------------------------------------------------------------
+
+            /*-----------*/
+            /* Example 1 */
+            /*-----------*/
+            //var workbook = new Workbook(Environment.GetFolderPath(Environment.SpecialFolder.Desktop) + "\\XXXX", 4);
+            //var headers = new List<string> { "Order ID", "Customer", "Product name", "Total" };
+            //await workbook
+            //     .BuildWorkSheet(0, Orders, headers, "MB-WAR")
+            //     .BuildWorkSheet(2, Orders, sheetName: "Orders")
+            //     .BuildWorkSheet(3, Orders, columnHeaders: headers)
+            //     .SaveAsync();
+            //Console.WriteLine("Saved");
+
+            /*-----------*/
+            /* Example 2 */
+            /*-----------*/
+            //string path = Environment.GetFolderPath(Environment.SpecialFolder.Desktop) + "\\XXXX.xlsx";
+            //var workbook = new Workbook(path);
+            //await workbook.LoadFile()
+            //              .InsertEmptyWorkSheet()
+            //              .BuildWorkSheet( workbook.SheetsCount - 1 , Orders )
+            //              .RemoveWorkSheet( 0 )
+            //              .Protect( "123456" )
+            //              .SaveAsync();
+            //Console.WriteLine("Saved");
+
+
             Console.ReadKey();
         }
     }

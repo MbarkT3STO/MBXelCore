@@ -90,7 +90,7 @@ namespace MBXel_Core.Core.Units
         {
           var properties = GetTypePropsOfSheet(workSheet);
 
-          // Prepaire column headers
+          // Prepare column headers
           for (int i = 0; i < properties.Length; i++)
           {
               workSheet.Content.Range[1, i + 1].Text = properties[i].Name;
@@ -103,7 +103,7 @@ namespace MBXel_Core.Core.Units
 
             if (columnHeaders.Count == properties.Length)
             {
-                // Prepaire column headers
+                // Prepare column headers
                 for (int i = 0; i < columnHeaders.Count; i++)
                 {
                     workSheet.Content.Range[1, i + 1].Text = columnHeaders[i];
@@ -158,7 +158,7 @@ namespace MBXel_Core.Core.Units
                 workSheet.Content.SetRowHeight(1, 30);
             }
 
-        private void InsertEmptyWorkSheet(string sheetName)
+        private void _InsertEmptyWorkSheet(string sheetName)
         {
             ThrowExceptionIfWorkSheetNameIsExist(sheetName);
 
@@ -218,7 +218,7 @@ namespace MBXel_Core.Core.Units
             StylingTheWorkSheet(sheet, data.Count);
         }
 
-        private void RemoveWorkSheet(int sheetIndex)
+        private void _RemoveWorkSheet(int sheetIndex)
         {
             ThrowExceptionIfWorkSheetIndexNotExist(sheetIndex);
 
@@ -226,7 +226,7 @@ namespace MBXel_Core.Core.Units
             _workBook.Worksheets[sheetIndex].Remove();
         }
         
-        private void RemoveWorkSheet(string sheetName)
+        private void _RemoveWorkSheet(string sheetName)
         {
             ThrowExceptionIfWorkSheetNameNotExist(sheetName);
 
@@ -351,7 +351,7 @@ namespace MBXel_Core.Core.Units
         /// <exception cref="IndexOutOfRangeException"></exception>
         public void RemoveSheet(int sheetIndex)
         {
-            RemoveWorkSheet(sheetIndex);
+            _RemoveWorkSheet(sheetIndex);
         } 
         
         /// <summary>
@@ -361,7 +361,7 @@ namespace MBXel_Core.Core.Units
         /// <exception cref="IndexOutOfRangeException"></exception>
         public void RemoveSheet(string sheetName)
         {
-            RemoveWorkSheet(sheetName);
+            _RemoveWorkSheet(sheetName);
         }
 
         #endregion
@@ -374,7 +374,7 @@ namespace MBXel_Core.Core.Units
         /// <param name="sheetName">The new worksheet name</param>
         public void InsertEmptySheet(string sheetName=null)
         {
-            InsertEmptyWorkSheet(sheetName);
+            _InsertEmptyWorkSheet(sheetName);
         }
 
         /// <summary>
@@ -550,6 +550,86 @@ namespace MBXel_Core.Core.Units
         }
 
         public Task SaveAsync() => Task.Factory.StartNew(() => Save());
+
+        #endregion
+
+        #endregion
+
+        #region Chaining methods
+
+        #region Build Worksheet
+
+        /// <inheritdoc cref="BuildSheet{T}(int,List{T})"/>
+        public Workbook BuildWorkSheet<T>(int sheetIndex , List<T> data )
+        {
+            BuildSheet<T>( sheetIndex , data );
+            return this;
+        }
+
+        /// <inheritdoc cref="BuildSheet{T}(int,string,List{T})"/>
+        public Workbook BuildWorkSheet<T>( int sheetIndex , string sheetName , List<T> data )
+        {
+            BuildSheet<T>(sheetIndex, sheetName, data);
+            return this;
+        }
+
+        /// <inheritdoc cref="BuildSheet{T}(int,List{T},List{string},string)"/>
+        public Workbook BuildWorkSheet<T>( int sheetIndex , List<T> data , List<string> columnHeaders = null , string sheetName = null )
+        {
+            BuildSheet<T>( sheetIndex , data , columnHeaders , sheetName );
+            return this;
+        }
+
+        #endregion
+
+        #region Remove worksheet
+
+        ///<inheritdoc cref="RemoveSheet(int)"/>
+        public Workbook RemoveWorkSheet( int sheetIndex )
+        {
+            RemoveSheet(sheetIndex);
+            return this;
+        } 
+        
+        ///<inheritdoc cref="RemoveSheet(string)"/>
+        public Workbook RemoveWorkSheet(string sheetName)
+        {
+            RemoveSheet( sheetName );
+            return this;
+        }
+
+        #endregion
+
+        #region Insert new worksheet
+
+        /// <inheritdoc cref="InsertEmptySheet"/>
+        public Workbook InsertEmptyWorkSheet( string sheetName = null )
+        {
+            InsertEmptySheet(sheetName);
+            return this;
+        }
+
+        #endregion
+
+        #region Load Workbook
+
+        /// <inheritdoc cref="LoadFromFile"/>
+        public Workbook LoadFile( string path = null )
+        {
+            LoadFromFile( path );
+            return this;
+        }
+
+        #endregion
+
+        #region Set password
+
+        /// <inheritdoc cref="SetPassword"/>
+        public Workbook Protect( string password )
+        {
+            SetPassword( password );
+            return this;
+        }
 
         #endregion
 
