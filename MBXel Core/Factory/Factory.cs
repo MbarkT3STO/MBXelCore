@@ -16,7 +16,15 @@ namespace MBXel_Core.Factory
         public Spire.Xls.Workbook CreateWorkbook(int numberOfSheets)
         {
             var workBook = new Spire.Xls.Workbook();
-            workBook.CreateEmptySheets(numberOfSheets);
+
+            workBook.Worksheets[0].Remove();
+            workBook.Worksheets[1].Remove();
+            //workBook.Worksheets[^1].Remove();
+
+            if ( numberOfSheets > 0 )
+            {
+                workBook.CreateEmptySheets(numberOfSheets);
+            }
             return workBook;
         } 
         

@@ -14,7 +14,7 @@ namespace MBXel_Core.Core.Units
 
         public void SetName(string sheetName)
         {
-            Name = sheetName;
+            Name         = sheetName;
             Content.Name = Name;
         } 
     }

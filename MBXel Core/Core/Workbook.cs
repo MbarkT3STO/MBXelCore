@@ -1,17 +1,16 @@
-﻿using LinqToExcel;
-
-using MBXel_Core.Exceptions;
-
-using Spire.Xls;
-
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
+using LinqToExcel;
+using MBXel_Core.Core.Abstraction;
+using MBXel_Core.Core.Units;
+using MBXel_Core.Exceptions;
+using Spire.Xls;
 
-namespace MBXel_Core.Core.Units
+namespace MBXel_Core.Core
 {
     /// <summary>
     /// Represent a workbook
@@ -21,31 +20,20 @@ namespace MBXel_Core.Core.Units
 
         #region Private properties
 
-        private Factory.Factory     _factory = new();
-        private Spire.Xls.Workbook  _workBook;
-        private List<WorkSheet> _sheets;
+        private readonly Factory.Factory    _factory = new();
+        private          Spire.Xls.Workbook _workBook;
+        private          List<WorkSheet>    _sheets;
+        private          bool               _isFirstSheet = true;
 
         #endregion
 
         #region Public properties
 
-        public string               Path            { get; private set;  }
-        public int                  SheetsCount     { get; private set;  }
-        public Enums.XLExtension    Extension       { get; private set; }
-        public ExcelVersion         Version         { get; private set; }
+        public IWorkbookConfig Configuration { get; set; } = new WorkbookConfig();
 
         #endregion
 
         #region Constructors
-
-        /// <summary>
-        /// Use this constructor when want to Import from a saved workbook file
-        /// </summary>
-        /// <param name="path">The file path</param>
-        public Workbook(string path)
-        {
-            SetWorkBookPath(path);
-        }
 
         /// <summary>
         /// Use this constructor when want to Export a new workbook
@@ -56,13 +44,27 @@ namespace MBXel_Core.Core.Units
         /// <param name="version">The workbook file version</param>
         public Workbook(string path, int numberOfSheets = 1, Enums.XLExtension extension = Enums.XLExtension.Xlsx, ExcelVersion version = ExcelVersion.Version2016)
         {
-            SheetsCount = numberOfSheets;
-            Extension = extension;
-            Version = version;
-            Path = path + (Extension is Enums.XLExtension.Xlsx ? ".xlsx" : ".xls");
+            Configuration.SheetsCount = numberOfSheets;
+            Configuration.Extension   = extension;
+            Configuration.Version     = version;
+            Configuration.Path        = path + (Configuration.Extension is Enums.XLExtension.Xlsx ? ".xlsx" : ".xls");
 
-            _workBook = _factory.CreateWorkbook(SheetsCount);
-            _sheets = _factory.CreateWorkSheets(SheetsCount);
+            Configuration.SheetsCount = Configuration.SheetsCount == 0 ? 1 : Configuration.SheetsCount;
+            _workBook                 = _factory.CreateWorkbook(Configuration.SheetsCount);
+            _sheets                   = _factory.CreateWorkSheets(Configuration.SheetsCount);
+        }
+          
+        
+        /// <summary>
+        /// This constructor can be used with all cases
+        /// </summary>
+        public Workbook(IWorkbookConfig workbookConfig)
+        {
+            Configuration             = workbookConfig;
+
+            //Configuration.SheetsCount = Configuration.SheetsCount == 0 ? 1 : Configuration.SheetsCount;
+            _workBook                 = _factory.CreateWorkbook(Configuration.SheetsCount);
+            //_sheets                   = _factory.CreateWorkSheets(Configuration.SheetsCount);
         }
 
 
@@ -70,33 +72,279 @@ namespace MBXel_Core.Core.Units
 
         #region Private methods
 
-        private PropertyInfo[] GetTypeProps<T>() => typeof(T).GetProperties();
-        private PropertyInfo[] GetTypePropsOfSheet(WorkSheet sheet) => sheet.Type.GetProperties();
+        #region Workbook
 
-        private void SetWorkBookPath(string path)
+        private void _SetWorkBookOpenPasswordFromConfig()
         {
-            Path = path;
+            if ( Configuration.Password != null )
+            {
+                _workBook.OpenPassword = Configuration.Password;
+            }
+        }
+        private void _SetWorkBookOpenVersionFromConfig()
+        {
+            _workBook.Version = Configuration.Version;
         }
 
-        private void SetTheWorkSheetName(int sheetIndex, string sheetName)
+        private void _ApplyWorkbookConfig()
         {
-            if (sheetName != null)
+            _SetWorkBookOpenVersionFromConfig();
+            _SetWorkBookOpenPasswordFromConfig();
+        }
+        private int _GetWorkBookSheetsCount() => _workBook.Worksheets.Count;
+        private void CreateBackInWorkBookWorkSheet(string sheetName)
+        {
+            if (_sheets.Count > 1)
+            {
+                _factory.CreateWorkSheet(ref _workBook, sheetName);
+            }
+        }
+        private void _SetWorkBookPath(string path)
+        {
+            Configuration.Path = path;
+        }
+
+        private void SaveTheWorkBook()
+        {
+            _ApplyWorkbookConfig();
+            _workBook.SaveToFile(Configuration.Path, Configuration.Version);
+        }
+        private void _ToPDF(string path)
+        {
+            _workBook.SaveToFile(path, FileFormat.PDF);
+        }
+        private void _ToXML(string path)
+        {
+            _workBook.SaveAsXml( path );
+        }
+
+        private void _LoadFromFile()
+        {
+            _workBook = _factory.CreateWorkbook();
+            _SetWorkBookOpenPasswordFromConfig();
+            _workBook.LoadFromFile(Configuration.Path);
+
+            Configuration.SheetsCount = _GetWorkBookSheetsCount();
+            _sheets                   = _factory.CreateWorkSheets(Configuration.SheetsCount);
+
+            for (int i = 0; i < Configuration.SheetsCount; i++)
+            {
+                if (_sheets[i].Content == null)
+                {
+                    _SetWorkSheetContent(i);
+                }
+                _SetTheWorkSheetName(i, _workBook.Worksheets[i].Name);
+                _SetWorkSheetContent(i, _workBook.Worksheets[i]);
+            }
+
+            _isFirstSheet = false;
+        }
+
+        private void _SetPassword(string password)
+        {
+            _workBook.UnProtect();
+            _workBook.Protect(password);
+        }
+        private void _Protect(string passwordToOpen, bool isProtectWindow, bool isProtectContent)
+        {
+            _workBook.Protect(passwordToOpen, isProtectWindow, isProtectContent);
+        }
+        private void _Unprotect()
+        {
+            _workBook.UnProtect();
+        }
+        private void _Unprotect(string bookAndStructurePassword)
+        {
+            _workBook.UnProtect(bookAndStructurePassword);
+        }
+        private void _SetAuthor(string author)
+        {
+            _workBook.DocumentProperties.Author = author;
+        }
+        private void _SetCompany(string company)
+        {
+            _workBook.DocumentProperties.Company = company;
+        }
+        private void _SetVersion(ExcelVersion version)
+        {
+            _workBook.Version = version;
+        }
+
+        #endregion
+
+        #region Worksheet
+
+        private WorkSheet _WorkSheet( int workSheetIndex )
+        {
+            return _sheets[workSheetIndex];
+        }
+        private WorkSheet _WorkSheet( string workSheetName )
+        {
+            return _sheets.FirstOrDefault( x => x.Name == workSheetName );
+        }
+
+        private void _UpdateSheetsCount( int newSheetsCount )
+        {
+            Configuration.SheetsCount = newSheetsCount;
+        }
+        private void _SetWorkSheetType<T>(int sheetIndex) where  T : class
+        {
+            _sheets[sheetIndex].Type = typeof(T);
+        }
+        private void _SetWorkSheetContent(int sheetIndex)
+        {
+            _sheets[sheetIndex].Content = _workBook.Worksheets[sheetIndex];
+        }
+        private void _SetWorkSheetContent(int sheetIndex, Worksheet worksheet)
+        {
+            _sheets[sheetIndex].Content = worksheet;
+        }
+        private void _SetTheWorkSheetName(int sheetIndex, string sheetName)
+        {
+            if (sheetName != null && _sheets[sheetIndex].Content != null)
+            {
+                _sheets[sheetIndex].SetName(sheetName);
+
+            }
+            else if (sheetName != null)
             {
                 _sheets[sheetIndex].SetName(sheetName);
             }
         }
 
-        private void PrepareTheWorkSheetHeaders(WorkSheet workSheet)
+        private void _CreateNewWorkSheet()
         {
-          var properties = GetTypePropsOfSheet(workSheet);
+            if (_isFirstSheet)
+            {
+                _sheets       = _factory.CreateWorkSheets(1);
+                _isFirstSheet = false;
+            }
+            else
+            {
+                _sheets.Add(new WorkSheet());
+            }
+        }
+        private void _InsertEmptyWorkSheet(string sheetName)
+        {
+            //if (_sheets == null || _sheets.Count <= 1)
+            //{
+            //    _sheets = _factory.CreateWorkSheets(1);
+            //}
+            //else
+            //{
+            //    ThrowExceptionIfWorkSheetNameIsExist(sheetName);
+            //    _sheets.Add(new WorkSheet());
+            //}
 
-          // Prepare column headers
-          for (int i = 0; i < properties.Length; i++)
-          {
-              workSheet.Content.Range[1, i + 1].Text = properties[i].Name;
-          }
+            if ( _isFirstSheet )
+            {
+                _sheets       = _factory.CreateWorkSheets(1);
+                _isFirstSheet = false;
+            }
+            else
+            {
+                _sheets.Add( new WorkSheet() );
+            }
+
+            if ( _sheets.Count > 1 )
+            {
+                _factory.CreateWorkSheet(ref _workBook, sheetName);
+            }
+
+            var sheetIndex = _sheets.Count - 1;
+
+            _sheets[sheetIndex].Content = _workBook.Worksheets[sheetIndex];
+
+            Configuration.SheetsCount = _sheets.Count;
+            _SetTheWorkSheetName(sheetIndex, sheetName);
+
+
+            //_sheets.Add(new WorkSheet() { Name = sheetName, Content = _workBook.Worksheets[Configuration.SheetsCount - 1] });
+        }   
+
+        private WorkSheet _CreateEmptyWorkSheet<T>(string sheetName) where T : class
+        {
+
+            _CreateNewWorkSheet();
+            CreateBackInWorkBookWorkSheet( sheetName );
+
+            var sheetIndex = _sheets.Count - 1;
+
+            _UpdateSheetsCount( _sheets.Count );
+            _SetWorkSheetContent( sheetIndex );
+            _SetWorkSheetType<T>( sheetIndex );
+
+            _SetTheWorkSheetName(sheetIndex, sheetName);
+
+            return _sheets[^1];
+        }
+        private WorkSheet _CreateEmptyWorkSheet(string sheetName)
+        {
+
+            _CreateNewWorkSheet();
+            CreateBackInWorkBookWorkSheet(sheetName);
+
+            var sheetIndex = _sheets.Count - 1;
+
+            _UpdateSheetsCount(_sheets.Count);
+            _SetWorkSheetContent(sheetIndex);
+            _SetWorkSheetType<object>(sheetIndex);
+
+            _SetTheWorkSheetName(sheetIndex, sheetName);
+
+            return _sheets[^1];
         }
 
+        private void CreateWorkSheet<T>(int sheetIndex, List<T> data, string sheetName =null)
+        {
+            _sheets[sheetIndex].Type    = typeof(T);
+            _sheets[sheetIndex].Content = _workBook.Worksheets[sheetIndex];
+            var sheet = _sheets[sheetIndex];
+
+            _SetTheWorkSheetName(sheetIndex, sheetName);
+            PrepareTheWorkSheetHeaders(sheet);
+            PrepareTheWorkSheetData(sheet, data);
+            StylingTheWorkSheet(sheet, data.Count);
+        }
+        private void CreateWorkSheet<T>(int sheetIndex, List<T> data, List<string> columnHeaders, string sheetName=null)
+        {
+            _sheets[sheetIndex].Type    = typeof(T);
+            _sheets[sheetIndex].Content = _workBook.Worksheets[sheetIndex];
+            var sheet = _sheets[sheetIndex];
+
+            _SetTheWorkSheetName(sheetIndex, sheetName);
+            PrepareTheWorkSheetHeaders(sheet, columnHeaders);
+            PrepareTheWorkSheetData(sheet, data);
+            StylingTheWorkSheet(sheet, data.Count);
+        }
+
+        private void _RemoveWorkSheet(int sheetIndex)
+        {
+            ThrowExceptionIfWorkSheetIndexNotExist(sheetIndex);
+
+            _sheets.RemoveAt(sheetIndex);
+            _workBook.Worksheets[sheetIndex].Remove();
+            _UpdateSheetsCount( _sheets.Count );
+        }
+        private void _RemoveWorkSheet(string sheetName)
+        {
+            ThrowExceptionIfWorkSheetNameNotExist(sheetName);
+
+            var sheet = _sheets.FirstOrDefault(x => x.Content.Name == sheetName);
+            _sheets.Remove(sheet);
+            _workBook.Worksheets.Remove(sheetName);
+        }
+
+        private void PrepareTheWorkSheetHeaders(WorkSheet workSheet)
+        {
+            var properties = GetTypePropsOfSheet(workSheet);
+
+            // Prepare column headers
+            for (int i = 0; i < properties.Length; i++)
+            {
+                workSheet.Content.Range[1, i + 1].Text = properties[i].Name;
+            }
+        }
         private void PrepareTheWorkSheetHeaders(WorkSheet workSheet, List<string> columnHeaders)
         {
             var properties = GetTypePropsOfSheet(workSheet);
@@ -114,7 +362,6 @@ namespace MBXel_Core.Core.Units
                 throw new HeadersPropertiesNotEqualsToDataPropertiesException();
             }
         }
-
         private void PrepareTheWorkSheetData<T>(WorkSheet workSheet, List<T> data)
         {
             var properties = GetTypePropsOfSheet(workSheet);
@@ -132,132 +379,71 @@ namespace MBXel_Core.Core.Units
                 rowIndex++;
             }
         }
-
         private void StylingTheWorkSheet(WorkSheet workSheet, int rowsNumber)
-            {
-                //Columns styling
-                workSheet.Content.Range["A1:BB1"].Style.Font.Size = 14;
-                workSheet.Content.Range["A1:BB1"].Style.Font.IsBold = true;
-                workSheet.Content.Range["A1:BB1"].Style.Font.Color = Color.White;
-                workSheet.Content.Range["A1:BB1"].Style.Interior.Color = ColorTranslator.FromHtml("#54a0ff");
-                workSheet.Content.Range["A1:BB1"].Style.HorizontalAlignment = HorizontalAlignType.Center;
-                workSheet.Content.Range["A1:BB1"].Style.VerticalAlignment = VerticalAlignType.Center;
-
-                //Rows styling
-                workSheet.Content.Range[$"A2:BB{rowsNumber + 1}"].Style.Font.Size = 14;
-                workSheet.Content.Range[$"A2:BB{rowsNumber + 1}"].Style.Font.Color = Color.White;
-                workSheet.Content.Range[$"A2:BB{rowsNumber + 1}"].Style.Interior.Color = ColorTranslator.FromHtml("#2ed573");
-                workSheet.Content.Range[$"A2:BB{rowsNumber + 1}"].Style.HorizontalAlignment = HorizontalAlignType.Center;
-                workSheet.Content.Range[$"A2:BB{rowsNumber + 1}"].Style.VerticalAlignment = VerticalAlignType.Center;
-
-                //Other Columns styling
-                workSheet.Content.AllocatedRange.AutoFitRows();
-                workSheet.Content.AllocatedRange.AutoFitColumns();
-
-                //Other Rows styling
-                workSheet.Content.SetRowHeight(1, 30);
-            }
-
-        private void _InsertEmptyWorkSheet(string sheetName)
         {
-            ThrowExceptionIfWorkSheetNameIsExist(sheetName);
+            var lastColumnIndex = workSheet.Content.LastColumn;
+            var lastRowIndex    = workSheet.Content.LastRow;
 
-            _factory.CreateWorkSheet(ref _workBook, sheetName);
-            
-            SheetsCount += 1;
+            //Columns styling
+            workSheet.Content.Range[1, 1, 1, lastColumnIndex].Style.Font.Size = 14;
+            workSheet.Content.Range[1, 1, 1, lastColumnIndex].Style.Font.IsBold = true;
+            workSheet.Content.Range[1, 1, 1, lastColumnIndex].Style.Font.Color = Color.White;
+            workSheet.Content.Range[1, 1, 1, lastColumnIndex].Style.Interior.Color = ColorTranslator.FromHtml("#54a0ff");
+            workSheet.Content.Range[1, 1, 1, lastColumnIndex].Style.HorizontalAlignment = HorizontalAlignType.Center;
+            workSheet.Content.Range[1, 1, 1, lastColumnIndex].Style.VerticalAlignment = VerticalAlignType.Center;
 
-            _sheets.Add(new WorkSheet() { Content = _workBook.Worksheets[SheetsCount - 1] });
+
+            //Rows styling
+            workSheet.Content.Range[2, 1, lastRowIndex, lastColumnIndex].Style.Font.Size = 14;
+            workSheet.Content.Range[2, 1, lastRowIndex, lastColumnIndex].Style.Font.Color = Color.White;
+            workSheet.Content.Range[2, 1, lastRowIndex, lastColumnIndex].Style.Interior.Color = ColorTranslator.FromHtml("#2ed573");
+            workSheet.Content.Range[2, 1, lastRowIndex, lastColumnIndex].Style.HorizontalAlignment = HorizontalAlignType.Center;
+            workSheet.Content.Range[2, 1, lastRowIndex, lastColumnIndex].Style.VerticalAlignment = VerticalAlignType.Center;
+
+            //Other Columns styling
+            workSheet.Content.AllocatedRange.AutoFitRows();
+            workSheet.Content.AllocatedRange.AutoFitColumns();
+
+            //Other Rows styling
+            workSheet.Content.SetRowHeight(1, 30);
         }
 
-        private void SaveTheWorkBook()
+        private bool _IsWorksheetContentNull(string sheetName)
         {
-            _workBook.SaveToFile(Path, Version);
+            return _sheets.FirstOrDefault(x => x.Name == sheetName && x.Content != null) == null;
         }
 
+        #endregion
+
+        #region Types
+
+        private PropertyInfo[] GetTypeProps<T>()                    => typeof(T).GetProperties();
+        private PropertyInfo[] GetTypePropsOfSheet(WorkSheet sheet) => sheet.Type.GetProperties();
+
+        #endregion
+
+        #region Exceptions
 
         private void ThrowExceptionIfWorkSheetIndexNotExist(int sheetIndex)
         {
             if (_sheets.ElementAtOrDefault(sheetIndex) == null)
                 throw new IndexOutOfRangeException("Sheet index was not found");
         }
-
         private void ThrowExceptionIfWorkSheetNameIsExist(string sheetName)
         {
-            if (_sheets.FirstOrDefault( x => x.Content.Name == sheetName ) != null)
-                throw new SheetNameAlreadyExistException($"A worksheet with the same name ({sheetName}) already exist");
+            if (_sheets.Count > 0 && sheetName != null)
+            {
+                if (_sheets.FirstOrDefault(x => x.Name == sheetName) != null)
+                    throw new SheetNameAlreadyExistException($"A worksheet with the same name ({sheetName}) already exist");
+            }
         }
-        
         private void ThrowExceptionIfWorkSheetNameNotExist(string sheetName)
         {
-            if (_sheets.FirstOrDefault( x => x.Content.Name == sheetName ) == null)
+            if (_sheets.FirstOrDefault(x => x.Content.Name == sheetName) == null)
                 throw new SheetNameNotExistException($"A worksheet with the name ({sheetName}) doesn't exist");
         }
 
-
-        private void CreateWorkSheet<T>(int sheetIndex, List<T> data, string sheetName=null)
-        {
-            _sheets[sheetIndex].Type = typeof(T);
-            _sheets[sheetIndex].Content = _workBook.Worksheets[sheetIndex];
-            var sheet = _sheets[sheetIndex];
-
-            SetTheWorkSheetName(sheetIndex, sheetName);
-            PrepareTheWorkSheetHeaders(sheet);
-            PrepareTheWorkSheetData(sheet, data);
-            StylingTheWorkSheet(sheet, data.Count);
-        }
-
-        private void CreateWorkSheet<T>(int sheetIndex, List<T> data, List<string> columnHeaders, string sheetName=null)
-        {
-            _sheets[sheetIndex].Type = typeof(T);
-            _sheets[sheetIndex].Content = _workBook.Worksheets[sheetIndex];
-            var sheet = _sheets[sheetIndex];
-
-            SetTheWorkSheetName(sheetIndex, sheetName);
-            PrepareTheWorkSheetHeaders(sheet, columnHeaders);
-            PrepareTheWorkSheetData(sheet, data);
-            StylingTheWorkSheet(sheet, data.Count);
-        }
-
-        private void _RemoveWorkSheet(int sheetIndex)
-        {
-            ThrowExceptionIfWorkSheetIndexNotExist(sheetIndex);
-
-            _sheets.RemoveAt(sheetIndex);
-            _workBook.Worksheets[sheetIndex].Remove();
-        }
-        
-        private void _RemoveWorkSheet(string sheetName)
-        {
-            ThrowExceptionIfWorkSheetNameNotExist(sheetName);
-
-            var sheet = _sheets.FirstOrDefault(x => x.Content.Name == sheetName);
-            _sheets.Remove(sheet);
-            _workBook.Worksheets.Remove(sheetName);
-        }
-
-
-        private void _SetWorkbookPassword(string password)
-        {
-            _workBook.Protect(password, true, true);
-        }
-
-        private void _LoadFromFile(Enums.XLExtension extension = Enums.XLExtension.Xlsx, ExcelVersion version = ExcelVersion.Version2016)
-        {
-            Extension = extension;
-            Version = version;
-
-            _workBook = _factory.CreateWorkbook();
-            _workBook.LoadFromFile(Path);
-
-            SheetsCount = _workBook.Worksheets.Count;
-            _sheets = _factory.CreateWorkSheets(SheetsCount);
-
-            for (int i = 0; i < SheetsCount; i++)
-            {
-                _sheets[i].Content = _workBook.Worksheets[i];
-                _sheets[i].Name = _workBook.Worksheets[i].Name;
-            }
-        }
+        #endregion
 
         #endregion
 
@@ -398,7 +584,7 @@ namespace MBXel_Core.Core.Units
         public void LoadFromFile(string path = null)
         {
             if (path != null)
-                SetWorkBookPath(path);
+                _SetWorkBookPath(path);
 
             _LoadFromFile();
         }
@@ -415,7 +601,7 @@ namespace MBXel_Core.Core.Units
         public IQueryable<Row> GetSheetAsQueryable(int sheetIndex)
         {
             //Load the workbook
-            var workbook = new ExcelQueryFactory(Path);
+            var workbook = new ExcelQueryFactory(Configuration.Path);
 
             //Collect data from the worksheet
             var result = workbook.Worksheet(sheetIndex);
@@ -442,7 +628,7 @@ namespace MBXel_Core.Core.Units
         public IQueryable<Row> GetSheetAsQueryable(string sheetName)
         {
             //Load the workbook
-            var workbook = new ExcelQueryFactory(Path);
+            var workbook = new ExcelQueryFactory(Configuration.Path);
 
             //Collect data from the worksheet
             var result = workbook.Worksheet(sheetName); ;
@@ -519,29 +705,6 @@ namespace MBXel_Core.Core.Units
 
         #endregion
 
-        #region Workbook Protection
-
-        /// <summary>
-        /// Set a password for the workbook file
-        /// </summary>
-        /// <param name="password">Custom password</param>
-        public void SetPassword(string password)
-        {
-            _SetWorkbookPassword(password);
-        }
-
-        /// <summary>
-        /// Asynchronously, <inheritdoc cref="SetPassword(string)"/>
-        /// </summary>
-        /// <inheritdoc cref="SetPassword(string)"/>
-        /// <returns><see cref="Task"/></returns>
-        public Task SetPasswordAsync(string password)
-        {
-            return Task.Factory.StartNew(() => _SetWorkbookPassword(password));
-        }
-
-        #endregion
-
         #region Save Workbook
 
         public void Save()
@@ -553,9 +716,49 @@ namespace MBXel_Core.Core.Units
 
         #endregion
 
+        #region To PDF
+
+        /// <summary>
+        /// Convert a workbook to PDF
+        /// </summary>
+        /// <param name="path">Path to save the PDF in</param>
+        public void ToPdf(string path)
+        {
+            _ToPDF(path);
+        }
+
+        /// <summary>
+        /// Asynchronously, <inheritdoc cref="ToPdf"/>
+        /// </summary>
+        /// <inheritdoc cref="ToPdf"/>
+        /// <returns><see cref="Task"/></returns>
+        public Task ToPdfAsync(string path) => Task.Factory.StartNew(() => ToPdf(path));
+
         #endregion
 
-        #region Chaining methods
+        #region To XML
+
+        /// <summary>
+        /// Convert a workbook to Office Open XML
+        /// </summary>
+        /// <param name="path">Path to save the XML in</param>
+        public void ToXml(string path)
+        {
+            _ToXML( path );
+        }
+
+        /// <summary>
+        /// Asynchronously, <inheritdoc cref="ToXml"/>
+        /// </summary>
+        /// <inheritdoc cref="ToXml"/>
+        /// <returns><see cref="Task"/></returns>
+        public Task ToXmlAsync( string path ) => Task.Factory.StartNew( () => ToXml( path ) );
+
+        #endregion
+
+        #endregion
+
+        #region Method chaining
 
         #region Build Worksheet
 
@@ -611,7 +814,20 @@ namespace MBXel_Core.Core.Units
 
         #endregion
 
-        #region Load Workbook
+        #region Create empty worksheet
+
+        public WorkSheet CreateEmptyWorkSheet<T>(string sheetName = null) where  T : class
+        {
+            return _CreateEmptyWorkSheet<T>( sheetName );
+        }
+        public WorkSheet CreateEmptyWorkSheet(string sheetName = null)
+        {
+            return _CreateEmptyWorkSheet( sheetName );
+        }
+
+        #endregion
+
+        #region Load
 
         /// <inheritdoc cref="LoadFromFile"/>
         public Workbook LoadFile( string path = null )
@@ -622,13 +838,124 @@ namespace MBXel_Core.Core.Units
 
         #endregion
 
-        #region Set password
+        #region password
 
-        /// <inheritdoc cref="SetPassword"/>
-        public Workbook Protect( string password )
+        /// <summary>
+        /// Set a password for the workbook file
+        /// </summary>
+        /// <param name="password">Custom password</param>
+        public Workbook Password( string password )
         {
-            SetPassword( password );
+            _SetPassword( password );
             return this;
+        }
+
+        #endregion
+
+        #region Author
+
+        /// <summary>
+        /// Set the Author for the workbook
+        /// </summary>
+        /// <param name="author">Author</param>
+        /// <returns><see cref="Workbook"/></returns>
+        public Workbook Author(string author)
+        {
+            _SetAuthor( author );
+            return this;
+        }
+
+        #endregion
+        
+        #region Company
+
+        /// <summary>
+        /// Set the Company property for the workbook
+        /// </summary>
+        /// <param name="company">Company</param>
+        /// <returns><see cref="Workbook"/></returns>
+        public Workbook Company(string company)
+        {
+            _SetCompany( company );
+            return this;
+        }
+
+        #endregion    
+        
+        #region Version
+
+        /// <summary>
+        /// Set Version for the workbook
+        /// </summary>
+        /// <param name="version">Workbook file version</param>
+        /// <returns><see cref="Workbook"/></returns>
+        public Workbook Version(ExcelVersion version)
+        {
+            _SetVersion( version );
+            return this;
+        }
+
+        #endregion
+
+        #region Protect
+
+        /// <summary>
+        /// Protect file,also Indicates whether protect workbook window and structure or not
+        /// </summary>
+        /// <param name="passwordToOpen">password to open file.</param>
+        /// <param name="isProtectWindow">Indicates if protect workbook window.</param>
+        /// <param name="isProtectContent">Indicates if protect workbook content.</param>
+        public Workbook Protect(string passwordToOpen, bool isProtectWindow, bool isProtectContent)
+        {
+            _Protect(passwordToOpen, isProtectWindow, isProtectContent);
+            return this;
+        } 
+        
+
+        #endregion
+        
+        #region Unprotect
+
+        /// <summary>
+        /// Remove the workbook protection 
+        /// </summary>
+        public Workbook Unprotect()
+        {
+            _Unprotect();
+            return this;
+        } 
+        
+        /// <summary>
+        /// Remove the workbook protection 
+        /// </summary>
+        public Workbook Unprotect(string bookAndStructurePassword)
+        {
+            _Unprotect( bookAndStructurePassword );
+            return this;
+        }
+
+        #endregion
+
+        #region Worksheet
+
+        /// <summary>
+        /// Get a specific worksheet from the workbook
+        /// </summary>
+        /// <param name="workSheetIndex">Worksheet index</param>
+        /// <returns><see cref="IWorkSheet"/></returns>
+        public WorkSheet Worksheet(int workSheetIndex)
+        {
+            return _WorkSheet( workSheetIndex );
+        }
+
+        /// <summary>
+        /// Get a specific worksheet from the workbook
+        /// </summary>
+        /// <param name="workSheetName">Worksheet name</param>
+        /// <returns><see cref="IWorkSheet"/></returns>
+        public WorkSheet Worksheet(string workSheetName)
+        {
+            return _WorkSheet( workSheetName );
         }
 
         #endregion

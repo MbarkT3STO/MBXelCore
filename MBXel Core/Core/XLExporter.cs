@@ -19,7 +19,7 @@ namespace MBXel_Core.Core
         #region Private properties
 
         private PropertyInfo[] _properties;
-        private Workbook _workBook;
+        private Spire.Xls.Workbook _workBook;
         private Worksheet _workSheet;
         private ExcelVersion _excelVersion;
         private int _TpropertiesCount { get =>  _properties.Length; }
@@ -33,8 +33,8 @@ namespace MBXel_Core.Core
             // Get data to be exported properties
             _properties = typeof(T).GetProperties();
 
-            // Prepaire the Workbook and Worksheet
-            _workBook = new Workbook();
+            // Prepare the Workbook and Worksheet
+            _workBook = new Spire.Xls.Workbook();
             _workBook.CreateEmptySheets(1);
             _workSheet = _workBook.Worksheets[0];
 
@@ -44,7 +44,7 @@ namespace MBXel_Core.Core
 
         private void PrepareTheWorkSheetHeaders()
         {
-            // Prepaire column headers
+            // Prepare column headers
             for (int i = 0; i < _properties.Length; i++)
             {
                 _workSheet.Range[1, i + 1].Text = _properties[i].Name;
@@ -55,7 +55,7 @@ namespace MBXel_Core.Core
         {
             if (columnHeaders.Count == _properties.Length)
             {
-                // Prepaire column headers
+                // Prepare column headers
                 for (int i = 0; i < columnHeaders.Count; i++)
                 {
                     _workSheet.Range[1, i + 1].Text = columnHeaders[i];
@@ -76,7 +76,7 @@ namespace MBXel_Core.Core
                 {
                     for (int i = 0; i < _properties.Length; i++)
                     {
-                        _workSheet.Range[rowIndex, i + 1].Text = _properties[i].GetValue(d).ToString();
+                        _workSheet.Range[rowIndex, i + 1].Text = _properties[i].GetValue(d)?.ToString();
                     }
 
                     rowIndex++;

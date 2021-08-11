@@ -107,7 +107,7 @@ namespace MBXel_Core.Core
             return data;
         }
         
-        private List<T> GetDataFromSheet<T, TSheetColumnsMap>(ExcelWorksheet worksheet, List<string> columnHeaders , int dataStartFromRow) where T : class , new() where  TSheetColumnsMap : ISheetColumnsMap<T> , new()
+        private List<T> GetDataFromSheet<T, TSheetColumnsMap>(ExcelWorksheet worksheet , int dataStartFromRow) where T : class , new() where  TSheetColumnsMap : ISheetColumnsMap<T> , new()
         {
             var data               = new List<T>();
             var propertiesOfT      = typeof(T).GetProperties();
@@ -218,9 +218,9 @@ namespace MBXel_Core.Core
 
                                                   using ( var package = new ExcelPackage( stream ) )
                                                   {
-                                                      var worksheet = package.Workbook.Worksheets[sheetName];
+                                                      var worksheet     = package.Workbook.Worksheets[sheetName];
                                                       var columnHeaders = GetSheetColumnHeaders<T>( worksheet: worksheet, headersRowIndex: 1 );
-                                                      var data = GetDataFromSheet<T, TSheetColumnsMap>( worksheet , columnHeaders , 2 );
+                                                      var data          = GetDataFromSheet<T, TSheetColumnsMap>( worksheet , 2 );
 
                                                       return data;
                                                   }
@@ -238,9 +238,9 @@ namespace MBXel_Core.Core
 
                                                   using ( var package = new ExcelPackage( stream ) )
                                                   {
-                                                      var worksheet = package.Workbook.Worksheets[sheetIndex];
+                                                      var worksheet     = package.Workbook.Worksheets[sheetIndex];
                                                       var columnHeaders = GetSheetColumnHeaders<T>( worksheet: worksheet, headersRowIndex: 1 );
-                                                      var data = GetDataFromSheet<T, TSheetColumnsMap>( worksheet , columnHeaders , 2 );
+                                                      var data          = GetDataFromSheet<T, TSheetColumnsMap>( worksheet , 2 );
 
                                                       return data;
                                                   }
