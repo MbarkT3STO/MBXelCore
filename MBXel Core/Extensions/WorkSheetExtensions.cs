@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
@@ -10,6 +11,7 @@ using LinqToExcel;
 using MBXel_Core.Core.Abstraction;
 using MBXel_Core.Core.Units;
 using MBXel_Core.Exceptions;
+using OfficeOpenXml.FormulaParsing.ExpressionGraph;
 using Spire.Xls;
 using Spire.Xls.Core.Spreadsheet;
 
@@ -20,12 +22,41 @@ namespace MBXel_Core.Extensions
 
         #region Private methods
 
+        private static bool IsOneOfObjectPropertiesNull<T>(T obj)
+        {
+            var propertiesOfT = typeof(T).GetProperties();
+
+            foreach (var prop in propertiesOfT)
+            {
+                var value = obj.GetType().GetProperty(prop.Name).GetValue(obj, null);
+                if (value == null)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+        private static bool IsOneOfObjectPropertiesNull<T>(T obj, Expression<Func<T, object>> propertiesToBeChecked)
+        {
+            var propertiesOfT = GetUsedProperties( propertiesToBeChecked );
+
+            foreach (var prop in propertiesOfT)
+            {
+                var value = obj.GetType().GetProperty(prop.Name).GetValue(obj, null);
+                if (value == null)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
         private static void ChangeTypeOfWorkSheet<T>( ref WorkSheet workSheet, List<T> data )
         {
             workSheet.Type = typeof( T );
         }
         private static PropertyInfo[] GetTypePropsOfSheet(WorkSheet sheet) => sheet.Type.GetProperties();
-
         private static Dictionary<string, int> GetSheetHeadersIndexes<T>(WorkSheet worksheet, int headersRowIndex)
         {
             var result = new Dictionary<string, int>();
@@ -139,6 +170,236 @@ namespace MBXel_Core.Extensions
             workSheet.Content.Range[bodyStartRowIndex + 1 , 1 , lastRowIndex , lastColumnIndex].Style.Interior.Color = ColorTranslator.FromHtml( backColor );
         }
 
+        private static List<PropertyInfo> GetUsedProperties<T>(Expression<Func<T,object>> usedPropertiesExpression )
+        {
+            var props = ( from prop in usedPropertiesExpression.Body.Type.GetProperties() select prop ).ToList();
+
+            return props;
+        }
+        private static List<string> GetCellRangeValues(IEnumerable<CellRange> cells)
+        {
+            var result = new List<string>();
+            foreach ( var cell in cells )
+            {
+                result.Add(cell.Value);
+            }
+
+            return result;
+        }
+        private static Dictionary<string, int> GetHeaderTitlesWithIndexes(WorkSheet workSheet, int headerRowIndex)
+        {
+            var result          = new Dictionary<string , int>();
+            var lastColumnIndex = workSheet.Content.LastColumn;
+            var headerRow       = workSheet.Content.Rows[headerRowIndex];
+            var headerTitles    = GetCellRangeValues( headerRow.Cells[..lastColumnIndex] );
+
+            for ( int i = 0 ; i < lastColumnIndex ; i ++ )
+            {
+                var currentCell      = headerRow.Cells[i];
+                var currentCellValue = currentCell.Value;
+                var currentCellIndex = headerTitles.IndexOf( currentCellValue );
+                result.Add( currentCellValue , currentCellIndex );
+            }
+
+            return result;
+        }
+
+        private static List<T> Select<T>(WorkSheet workSheet, int headerRowIndex, bool ignoreObjectIfOnePropertyHasNoValue) where  T : class, new()
+        {
+            var propertiesOfT             = typeof(T).GetProperties();
+            var propertiesOfTAsList       = propertiesOfT.ToList();
+            var cells                     = workSheet.Content.Cells;
+            var lastUsedRowInTheWorkSheet = workSheet.Content.LastRow;
+            var result                    = new List<T>();
+
+            for (var i = headerRowIndex + 2; i <= lastUsedRowInTheWorkSheet; i++)
+            {
+                var row = cells[i];
+                var obj = new T();
+
+                foreach (var prop in propertiesOfT)
+                {
+                    var currentCellValue = row[i, propertiesOfTAsList.IndexOf(prop) + 1].Value;
+
+                    if (ignoreObjectIfOnePropertyHasNoValue)
+                    {
+                        if (currentCellValue != null && currentCellValue.Trim() != "")
+                        {
+                            obj.GetType().GetProperty(prop.Name)?.SetValue(obj, Convert.ChangeType(currentCellValue, prop.PropertyType));
+                        }
+                    }
+                    else
+                    {
+                        obj.GetType().GetProperty(prop.Name)?.SetValue(obj, Convert.ChangeType(currentCellValue, prop.PropertyType));
+                    }
+                }
+
+                if ( ignoreObjectIfOnePropertyHasNoValue )
+                { 
+                    if ( !IsOneOfObjectPropertiesNull(obj) )
+                    { 
+                        result.Add(obj);
+                    }
+                }
+                else
+                {
+                    result.Add(obj);
+                }
+
+            }
+
+            return result;
+        }
+        private static List<T> Select<T>(WorkSheet workSheet, Expression<Func<T, object>> usedPropertiesExpression , int headerRowIndex, bool ignoreObjectIfOnePropertyHasNoValue) where  T : class, new()
+        {
+            var usedProperties            = GetUsedProperties( usedPropertiesExpression );
+            var headerTitlesWithIndexes   = GetHeaderTitlesWithIndexes( workSheet , headerRowIndex);
+            var cells                     = workSheet.Content.Cells;
+            var lastUsedRowInTheWorkSheet = workSheet.Content.LastRow;
+            var result                    = new List<T>();
+
+            for (var i = headerRowIndex + 2; i <= lastUsedRowInTheWorkSheet; i++)
+            {
+                var row = cells[i];
+                var obj = new T();
+
+                foreach (var prop in usedProperties)
+                {
+                    var currentPropertyColumnIndex = headerTitlesWithIndexes[prop.Name];
+                    var currentCellValue           = row[i , currentPropertyColumnIndex + 1].Value;
+
+                    if (ignoreObjectIfOnePropertyHasNoValue)
+                    {
+                        if (currentCellValue != null && currentCellValue.Trim() != "")
+                        {
+                            obj.GetType().GetProperty(prop.Name)?.SetValue(obj, Convert.ChangeType(currentCellValue, prop.PropertyType));
+                        }
+                    }
+                    else
+                    {
+                        obj.GetType().GetProperty(prop.Name)?.SetValue(obj, Convert.ChangeType(currentCellValue, prop.PropertyType));
+                    }
+                }
+
+                if (ignoreObjectIfOnePropertyHasNoValue)
+                {
+                    if (!IsOneOfObjectPropertiesNull(obj ,usedPropertiesExpression))
+                    {
+                        result.Add(obj);
+                    }
+                }
+                else
+                {
+                    result.Add(obj);
+                }
+            }
+
+            return result;
+        }
+        private static List<T> Select<T, TSheetColumnsMap>(WorkSheet workSheet, int headerRowIndex, bool ignoreObjectIfOnePropertyHasNoValue) where  T : class, new() where  TSheetColumnsMap : ISheetColumnsMap<T>, new()
+        {
+            var propertiesOfT             = typeof(T).GetProperties();
+            var cells                     = workSheet.Content.Cells;
+            var lastUsedRowInTheWorkSheet = workSheet.Content.LastRow;
+            var result                    = new List<T>();
+            var columnsMap                = new TSheetColumnsMap().CreateMap();
+            var headersIndexes            = GetSheetHeadersIndexes<T>(worksheet: workSheet, headersRowIndex: 0);
+
+            for (var i = headerRowIndex + 2; i <= lastUsedRowInTheWorkSheet; i++)
+            {
+                var row = cells[i];
+                var obj = new T();
+
+                foreach (var prop in propertiesOfT)
+                {
+                    if (columnsMap.ContainsKey(prop.Name))
+                    {
+                        var propHeader = columnsMap[prop.Name];
+                        var propHeaderIndex = headersIndexes[propHeader];
+                        var currentCellValue = row[i, propHeaderIndex + 1].Value;
+
+                        if (ignoreObjectIfOnePropertyHasNoValue)
+                        {
+                            if (currentCellValue != null && currentCellValue.Trim() != "")
+                            {
+                                obj.GetType().GetProperty(prop.Name)?.SetValue(obj, Convert.ChangeType(currentCellValue, prop.PropertyType));
+                            }
+                        }
+                        else
+                        {
+                            obj.GetType().GetProperty(prop.Name)?.SetValue(obj, Convert.ChangeType(currentCellValue, prop.PropertyType));
+                        }
+                    }
+                }
+
+                if (ignoreObjectIfOnePropertyHasNoValue)
+                {
+                    if (!IsOneOfObjectPropertiesNull(obj))
+                    {
+                        result.Add(obj);
+                    }
+                }
+                else
+                {
+                    result.Add(obj);
+                }
+            }
+
+            return result;
+        }
+        private static List<T> Select<T, TSheetColumnsMap>(WorkSheet workSheet, Expression<Func<T, object>> usedPropertiesExpression , int headerRowIndex, bool ignoreObjectIfOnePropertyHasNoValue) where  T : class, new() where  TSheetColumnsMap : ISheetColumnsMap<T>, new()
+        {
+            var usedProperties            = GetUsedProperties( usedPropertiesExpression );
+            var columnsMap                = new TSheetColumnsMap().CreateMap();
+            var headerTitlesWithIndexes   = GetHeaderTitlesWithIndexes( workSheet , headerRowIndex);
+            var cells                     = workSheet.Content.Cells;
+            var lastUsedRowInTheWorkSheet = workSheet.Content.LastRow;
+            var result                    = new List<T>();
+
+            for (var i = headerRowIndex + 2; i <= lastUsedRowInTheWorkSheet; i++)
+            {
+                var row = cells[i];
+                var obj = new T();
+
+                foreach (var prop in usedProperties)
+                {
+                    if ( columnsMap.ContainsKey( prop.Name ) )
+                    {
+                        var currentPropertyHeader            = columnsMap[prop.Name];
+                        var currentPropertyHeaderColumnIndex = headerTitlesWithIndexes[currentPropertyHeader];
+                        var currentCellValue                 = row[i , currentPropertyHeaderColumnIndex + 1].Value;
+
+                        if ( ignoreObjectIfOnePropertyHasNoValue )
+                        {
+                            
+                            if ( currentCellValue != null && currentCellValue.Trim() != "" )
+                            { 
+                                obj.GetType().GetProperty( prop.Name )?.SetValue( obj , Convert.ChangeType( currentCellValue , prop.PropertyType ) );
+                            }
+                           
+                        }
+                        else
+                        { 
+                            obj.GetType().GetProperty( prop.Name )?.SetValue( obj , Convert.ChangeType( currentCellValue , prop.PropertyType ) );
+                        }
+                    }
+                }
+
+                if (ignoreObjectIfOnePropertyHasNoValue)
+                {
+                    if (!IsOneOfObjectPropertiesNull(obj, usedPropertiesExpression))
+                    {
+                        result.Add(obj);
+                    }
+                }
+                else
+                {
+                    result.Add(obj);
+                }
+            }
+
+            return result;
+        }
 
 
         #endregion
@@ -333,37 +594,26 @@ namespace MBXel_Core.Extensions
         /// </summary>
         /// <typeparam name="T">Type of data</typeparam>
         /// <param name="workSheet">Represent <see cref="WorkSheet"/> object</param>
+        /// <param name="headerRowIndex">Index of the data table header row</param>
+        /// <param name="ignoreObjectIfOnePropertyHasNoValue">Determine if want to ignore objects that one of its properties has no value</param>
         /// <returns><see cref="Task{TResult}"/></returns>
-        public static Task<List<T>> SelectAsync<T>(this WorkSheet workSheet) where T : class , new()
+        public static Task<List<T>> SelectAsync<T>(this WorkSheet workSheet, int headerRowIndex = 0, bool ignoreObjectIfOnePropertyHasNoValue = false) where T : class , new()
         {
-            return Task.Factory.StartNew( () =>
-                                          {
-                                              var propertiesOfT             = typeof( T ).GetProperties();
-                                              var propertiesOfTAsList       = propertiesOfT.ToList();
-                                              var cells                     = workSheet.Content.Cells;
-                                              var lastUsedRowInTheWorkSheet = workSheet.Content.LastRow;
-                                              var result                    = new List<T>();
+            return Task.Factory.StartNew( () => Select<T>( workSheet, headerRowIndex, ignoreObjectIfOnePropertyHasNoValue ) );
+        }
 
-                                              for ( var i = 2 ; i < cells.Length && i<=lastUsedRowInTheWorkSheet ; i ++ )
-                                              {
-                                                  var row = cells[i];
-                                                  var obj = new T();
-
-                                                  foreach ( var prop in propertiesOfT )
-                                                  {
-                                                      var typeOfProp = prop.GetType();
-                                                      var currentCellValue = row[i , propertiesOfTAsList.IndexOf( prop ) + 1].Value;
-
-                                                      obj.GetType().GetProperty( prop.Name )
-                                                        ?.SetValue( obj ,
-                                                                   Convert.ChangeType(currentCellValue  , prop.PropertyType ) );
-                                                  }
-
-                                                  result.Add( obj );
-                                              }
-
-                                              return result;
-                                          } );
+        /// <summary>
+        /// Asynchronously select data from the worksheet and determine just one or bunche properties to be selected
+        /// </summary>
+        /// <typeparam name="T">Type of data</typeparam>
+        /// <param name="workSheet">Represent <see cref="WorkSheet"/> object</param>
+        /// <param name="usedPropertiesExpression">Properties to be selected from the worksheet and set its values</param>
+        /// <param name="headerRowIndex">Index of the data table header row</param>
+        /// <param name="ignoreObjectIfOnePropertyHasNoValue">Determine if want to ignore objects that one of its properties has no value</param>
+        /// <returns><see cref="Task{TResult}"/></returns>
+        public static Task<List<T>> SelectAsync<T>(this WorkSheet workSheet, Expression<Func<T, object>> usedPropertiesExpression, int headerRowIndex = 0, bool ignoreObjectIfOnePropertyHasNoValue = false) where T : class , new()
+        {
+            return Task.Factory.StartNew( () => Select<T>( workSheet , usedPropertiesExpression, headerRowIndex, ignoreObjectIfOnePropertyHasNoValue) );
         }
 
         /// <summary>
@@ -372,44 +622,29 @@ namespace MBXel_Core.Extensions
         /// <typeparam name="T">Type of data</typeparam>
         /// <typeparam name="TSheetColumnsMap">An implementation of <see cref="ISheetColumnsMap{T}"/></typeparam>
         /// <param name="workSheet">Represent <see cref="WorkSheet"/> object</param>
+        /// <param name="headerRowIndex">Index of the data table header row</param>
+        /// <param name="ignoreObjectIfOnePropertyHasNoValue">Determine if want to ignore objects that one of its properties has no value</param>
         /// <returns><see cref="Task{TResult}"/></returns>
-        public static Task<List<T>> SelectAsync<T, TSheetColumnsMap>(this WorkSheet workSheet) where T : class , new() where TSheetColumnsMap : ISheetColumnsMap<T>, new()
+        public static Task<List<T>> SelectAsync<T, TSheetColumnsMap>(this WorkSheet workSheet, int headerRowIndex = 0, bool ignoreObjectIfOnePropertyHasNoValue = false) where T : class , new() where TSheetColumnsMap : ISheetColumnsMap<T>, new()
         {
-            return Task.Factory.StartNew( () =>
-                                          {
-                                              var propertiesOfT             = typeof( T ).GetProperties();
-                                              var propertiesOfTAsList       = propertiesOfT.ToList();
-                                              var cells                     = workSheet.Content.Cells;
-                                              var lastUsedRowInTheWorkSheet = workSheet.Content.LastRow;
-                                              var result                    = new List<T>();
-                                              var columnsMap                = new TSheetColumnsMap().CreateMap();
-                                              var headersIndexes = GetSheetHeadersIndexes<T>( worksheet : workSheet , headersRowIndex : 0 );
-
-                                              for ( var i = 2 ; i < cells.Length && i <= lastUsedRowInTheWorkSheet ; i ++ )
-                                              {
-                                                  var row = cells[i];
-                                                  var obj = new T();
-
-                                                  foreach ( var prop in propertiesOfT )
-                                                  {
-                                                      if ( columnsMap.ContainsKey( prop.Name ) )
-                                                      {
-                                                          var propHeader       = columnsMap[prop.Name];
-                                                          var propHeaderIndex  = headersIndexes[propHeader];
-                                                          var currentCellValue = row[i , propHeaderIndex +1].Value;
-
-                                                          obj.GetType().GetProperty( prop.Name )
-                                                            ?.SetValue( obj , Convert.ChangeType( currentCellValue , prop.PropertyType ) );
-                                                      }
-                                                  }
-
-                                                  result.Add( obj );
-                                              }
-
-                                              return result;
-                                          } );
+            return Task.Factory.StartNew( () => Select<T>( workSheet, headerRowIndex, ignoreObjectIfOnePropertyHasNoValue) );
         }
 
+        /// <summary>
+        /// Asynchronously select data from the worksheet and determine just one or bunche properties to be selected
+        /// </summary>
+        /// <typeparam name="T">Type of data</typeparam>
+        /// <typeparam name="TSheetColumnsMap">An implementation of <see cref="ISheetColumnsMap{T}"/></typeparam>
+        /// <param name="workSheet">Represent <see cref="WorkSheet"/> object</param>
+        /// <param name="usedPropertiesExpression">Properties to be selected from the worksheet and set its values</param>
+        /// <param name="headerRowIndex">Index of the data table header row</param>
+        /// <param name="ignoreObjectIfOnePropertyHasNoValue">Determine if want to ignore objects that one of its properties has no value</param>
+        /// <returns><see cref="Task{TResult}"/></returns>
+        public static Task<List<T>> SelectAsync<T, TSheetColumnsMap>(this WorkSheet workSheet, Expression<Func<T, object>> usedPropertiesExpression, int headerRowIndex = 0, bool ignoreObjectIfOnePropertyHasNoValue = false) where T : class , new() where TSheetColumnsMap : ISheetColumnsMap<T>, new()
+        {
+            return Task.Factory.StartNew( () => Select<T , TSheetColumnsMap>( workSheet , usedPropertiesExpression,headerRowIndex, ignoreObjectIfOnePropertyHasNoValue) );
+        }    
+        
 
         /// <summary>
         /// Lock a cell or a range of cells
@@ -505,6 +740,19 @@ namespace MBXel_Core.Extensions
         }
 
         /// <summary>
+        /// Ungroups columns
+        /// </summary>
+        /// <param name="workSheet">Represent <see cref="WorkSheet"/> object</param>
+        /// <param name="firstColumn">The first column index to be ungrouped</param>
+        /// <param name="lastColumn">The last column index to be ungrouped</param>
+        /// <returns><see cref="WorkSheet"/></returns>
+        public static WorkSheet UngroupColumns(this WorkSheet workSheet, int firstColumn, int lastColumn)
+        {
+            workSheet.Content.UngroupByColumns( firstColumn + 1 , lastColumn + 1 );
+            return workSheet;
+        }   
+        
+        /// <summary>
         /// Groups rows
         /// </summary>
         /// <param name="workSheet">Represent <see cref="WorkSheet"/> object</param>
@@ -515,19 +763,6 @@ namespace MBXel_Core.Extensions
         public static WorkSheet GroupRows(this WorkSheet workSheet, int firstRow, int lastRow, bool isCollapsed=true)
         {
             workSheet.Content.GroupByRows( firstRow + 1 , lastRow + 1 , isCollapsed );
-            return workSheet;
-        }
-
-        /// <summary>
-        /// Ungroups columns
-        /// </summary>
-        /// <param name="workSheet">Represent <see cref="WorkSheet"/> object</param>
-        /// <param name="firstColumn">The first column index to be ungrouped</param>
-        /// <param name="lastColumn">The last column index to be ungrouped</param>
-        /// <returns><see cref="WorkSheet"/></returns>
-        public static WorkSheet UngroupColumns(this WorkSheet workSheet, int firstColumn, int lastColumn)
-        {
-            workSheet.Content.UngroupByColumns( firstColumn + 1 , lastColumn + 1 );
             return workSheet;
         }
 

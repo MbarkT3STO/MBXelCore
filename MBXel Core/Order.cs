@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace MBXel_Core
 {
-    class Order
+    internal class Order
     {
         public int ID { get; set; }
         public string Client { get; set; }

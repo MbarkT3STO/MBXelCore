@@ -58,7 +58,6 @@ namespace MBXel_Core.Core
 
             return result;
         }
-
         private List<string> GetSheetColumnHeaders<T>(ExcelWorksheet worksheet, int headersRowIndex)
         {
             var propsCountOfT = typeof(T).GetProperties().Length;
@@ -83,9 +82,9 @@ namespace MBXel_Core.Core
 
         private List<T> GetDataFromSheet<T>(ExcelWorksheet worksheet, List<string> columnHeaders , int dataStartFromRow) where T : new()
         {
-            var data          = new List<T>();
-            var propertiesOfT = typeof(T).GetProperties();
-            var worksheetRowsCount      = worksheet.Dimension.Rows;
+            var data               = new List<T>();
+            var propertiesOfT      = typeof(T).GetProperties();
+            var worksheetRowsCount = worksheet.Dimension.Rows;
 
             for (int row = dataStartFromRow; row <= worksheetRowsCount; row++)
             {
@@ -95,9 +94,8 @@ namespace MBXel_Core.Core
                 {
                     if (columnHeaders.Contains(prop.Name))
                     {
-                        var typeOfProp = prop.GetType();
-                        obj.GetType().GetProperty(prop.Name)
-                          ?.SetValue(obj, Convert.ChangeType(worksheet.Cells[row, columnHeaders.IndexOf(prop.Name) + 1].Value, prop.PropertyType));
+                        var currentCellValue = worksheet.Cells[row , columnHeaders.IndexOf( prop.Name ) + 1]?.ToString();
+                        obj.GetType().GetProperty( prop.Name )?.SetValue( obj , Convert.ChangeType( currentCellValue , prop.PropertyType ) );
                     }
                 }
 
@@ -106,7 +104,6 @@ namespace MBXel_Core.Core
 
             return data;
         }
-        
         private List<T> GetDataFromSheet<T, TSheetColumnsMap>(ExcelWorksheet worksheet , int dataStartFromRow) where T : class , new() where  TSheetColumnsMap : ISheetColumnsMap<T> , new()
         {
             var data               = new List<T>();
@@ -133,12 +130,10 @@ namespace MBXel_Core.Core
                         var propHeaderIndex = headersIndexes[propHeader];
 
                         // Set T object current property value
-                        obj.GetType().GetProperty(prop.Name)
-                          ?.SetValue(obj, Convert.ChangeType(worksheet.Cells[row, propHeaderIndex].Value, prop.PropertyType));
+                        var currentCellValue = worksheet.Cells[row, propHeaderIndex].Value.ToString(); 
+                        obj.GetType().GetProperty(prop.Name)?.SetValue(obj, Convert.ChangeType(currentCellValue, prop.PropertyType));
                     }
                 }
-
-                data.Add(obj);
             }
 
             return data;
@@ -155,7 +150,6 @@ namespace MBXel_Core.Core
                 return result;
             }
         }
-        
         private IQueryable<Row> _Import(string filePath, int sheetIndex)
         {
             //Load the workbook
@@ -187,7 +181,6 @@ namespace MBXel_Core.Core
                                               }
                                           } );
         }
-
         private Task<List<T>> _ImportFromIFormFileAsync<T>(IFormFile file, int sheetIndex) where T : new()
         {
             return Task.Factory.StartNew(() =>
@@ -207,7 +200,6 @@ namespace MBXel_Core.Core
                                              }
                                          });
         }
-
         private Task<List<T>> _ImportFromIFormFileAsync<T, TSheetColumnsMap>( IFormFile file, string sheetName ) where T : class, new() where TSheetColumnsMap : ISheetColumnsMap<T> , new()
         {
             return Task.Factory.StartNew( () =>
@@ -226,8 +218,7 @@ namespace MBXel_Core.Core
                                                   }
                                               }
                                           } );
-        }  
-        
+        }
         private Task<List<T>> _ImportFromIFormFileAsync<T, TSheetColumnsMap>( IFormFile file, int sheetIndex ) where T : class, new() where TSheetColumnsMap : ISheetColumnsMap<T> , new()
         {
             return Task.Factory.StartNew( () =>

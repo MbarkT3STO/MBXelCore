@@ -318,6 +318,30 @@ namespace MBXel_Core
             //}
 
 
+            /*-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+            /* Example 5.5: Get data from a worksheet as a list of specified Type */
+            /*------------------------------------------------------------------*/
+            /* NOTE : Use this method if the worksheet data table header titles are in the same names with TYPE (T) properties names and contains (Worksheet) columns represent some of (T) properties */
+            /*-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+            //string path = Environment.GetFolderPath(Environment.SpecialFolder.Desktop) + "\\XXXX.xlsx";
+            //var config = new WorkbookConfig()
+            //{
+            //    Extension = XLExtension.Xlsx,
+            //    Version = ExcelVersion.Version2016,
+            //    Path = path
+            //};
+            //var workbook = new Workbook(config);
+
+            //// Retrieve data from the worksheet as a list of type <Order>
+            //var r = await workbook.LoadFile(path).Worksheet("MB-WAR").SelectAsync<Order>(usedPropertiesExpression: x => new { x.Client, x.Product });
+
+            //foreach (var order in r)
+            //{
+            //    Console.WriteLine($"{order.Client}, {order.Product}");
+            //}
+
+
+
             /*--------------------------------------------------------------------------------------------------------------------------------------------*/
             /* Example 6: Get data from a worksheet as list of a specified type and use a custom map between data table header titles and Type properties */
             /*------------------------------------------------------------------*/
@@ -339,6 +363,29 @@ namespace MBXel_Core
             //foreach (var order in r)
             //{
             //    Console.WriteLine($"{order.ID}, {order.Client}, {order.Product}, {order.Total}");
+            //}
+
+
+            /*-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+            /* Example 6.5: Get data from a worksheet as list of a specified type and use a custom map between data table header titles and Type properties */
+            /*------------------------------------------------------------------*/
+            /* NOTE : Use this method if the worksheet data table header titles are in the same names with TYPE (T) properties names and contains (Worksheet) columns represent some of (T) properties */
+            /*-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+            //string path = Environment.GetFolderPath(Environment.SpecialFolder.Desktop) + "\\XXXXHeaders.xlsx";
+            //var config = new WorkbookConfig()
+            //{
+            //    Extension = XLExtension.Xlsx,
+            //    Version = ExcelVersion.Version2016,
+            //    Path = path
+            //};
+            //var workbook = new Workbook(config);
+
+            //// Retrieve data from the worksheet as a list of type <Order>
+            //var r = await workbook.LoadFile(path).Worksheet("MB-WAR").SelectAsync<Order, ImplementationOfISheetColumnsMapExample>(usedPropertiesExpression: x => new { x.Client, x.Total });
+
+            //foreach (var order in r)
+            //{
+            //    Console.WriteLine($"{order.Client}, {order.Total}");
             //}
 
             #endregion
