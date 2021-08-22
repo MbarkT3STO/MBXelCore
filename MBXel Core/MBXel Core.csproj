@@ -13,12 +13,13 @@
     <PackageId>MBXelCore</PackageId>
     <Authors>MBARK T3STO</Authors>
     <Company>T3STO</Company>
-    <ApplicationIcon>D:\Logo\12715467_1048221511901957_8409655708148977738_n.ico</ApplicationIcon>
+    <ApplicationIcon></ApplicationIcon>
     <AssemblyVersion>1.0.4</AssemblyVersion>
     <StartupObject />
     <Version>2.1</Version>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     <PackageReleaseNotes />
+    <Win32Resource></Win32Resource>
   </PropertyGroup>
 
   <ItemGroup>
@@ -28,13 +29,28 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="EPPlus" Version="5.7.2" />
+    <PackageReference Include="EPPlus" Version="5.7.3" />
     <PackageReference Include="LinqToExcel" Version="2.0.0-PRERELEASE-2" />
     <PackageReference Include="MBOfficeCoreSpireBase" Version="5.3.0.1" />
-    <PackageReference Include="Microsoft.AspNetCore.Http.Features" Version="5.0.8" />
+    <PackageReference Include="Microsoft.AspNetCore.Http.Features" Version="5.0.9" />
     <PackageReference Include="Remotion.Linq" Version="2.2.0" />
     <PackageReference Include="System.Data.OleDb" Version="5.0.0" />
     <PackageReference Include="System.Drawing.Common" Version="5.0.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="Properties\Resources.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Update="Properties\Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
   </ItemGroup>
 
 </Project>

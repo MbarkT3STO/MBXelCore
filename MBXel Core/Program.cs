@@ -1,14 +1,7 @@
-﻿using MBXel_Core.Core.Units;
-
-using System.Linq;
-
+﻿
 using System;
 using System.Collections.Generic;
-using System.Drawing.Imaging;
-using MBXel_Core.Enums;
-using MBXel_Core.Extensions;
-using Spire.Xls;
-using Workbook = MBXel_Core.Core.Workbook;
+using System.Threading.Tasks;
 
 namespace MBXel_Core
 {
@@ -32,7 +25,7 @@ namespace MBXel_Core
                                                          new Order(14, "Eddawdi Nawal", "PRD-1", 2000)
                                                      };
 
-        static async System.Threading.Tasks.Task Main(string[] args)
+        public static async Task Main(string[] args)
         {
 
             //---------------------------------------------------------------------------------------------------------

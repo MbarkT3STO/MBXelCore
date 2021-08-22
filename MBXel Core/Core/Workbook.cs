@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.InteropServices.ComTypes;
 using System.Threading.Tasks;
 using LinqToExcel;
 using MBXel_Core.Core.Abstraction;
@@ -123,6 +125,27 @@ namespace MBXel_Core.Core
             _workBook = _factory.CreateWorkbook();
             _SetWorkBookOpenPasswordFromConfig();
             _workBook.LoadFromFile(Configuration.Path);
+
+            Configuration.SheetsCount = _GetWorkBookSheetsCount();
+            _sheets                   = _factory.CreateWorkSheets(Configuration.SheetsCount);
+
+            for (int i = 0; i < Configuration.SheetsCount; i++)
+            {
+                if (_sheets[i].Content == null)
+                {
+                    _SetWorkSheetContent(i);
+                }
+                _SetTheWorkSheetName(i, _workBook.Worksheets[i].Name);
+                _SetWorkSheetContent(i, _workBook.Worksheets[i]);
+            }
+
+            _isFirstSheet = false;
+        }
+        private void _LoadFromStream(Stream stream)
+        {
+            _workBook = _factory.CreateWorkbook();
+            _SetWorkBookOpenPasswordFromConfig();
+            _workBook.LoadFromStream( stream );
 
             Configuration.SheetsCount = _GetWorkBookSheetsCount();
             _sheets                   = _factory.CreateWorkSheets(Configuration.SheetsCount);
@@ -833,6 +856,16 @@ namespace MBXel_Core.Core
         public Workbook LoadFile( string path = null )
         {
             LoadFromFile( path );
+            return this;
+        }
+
+        /// <summary>
+        /// Load a workbook from a stream
+        /// </summary>
+        /// <param name="stream">Stream to load workbook from</param>
+        public Workbook LoadFromStream(Stream stream)
+        {
+            _LoadFromStream( stream );
             return this;
         }
 
