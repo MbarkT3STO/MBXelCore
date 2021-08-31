@@ -2,6 +2,11 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using MBXel_Core.Core.Units;
+using MBXel_Core.Enums;
+using MBXel_Core.Extensions;
+using Spire.Xls;
+using Workbook = MBXel_Core.Core.Workbook;
 
 namespace MBXel_Core
 {
@@ -547,6 +552,27 @@ namespace MBXel_Core
             //workbook.LoadFile();
             //// Set custom header and body colors
             //workbook.Worksheet( "MB-WAR" ).DataHeaderColors( "#3742fa" , "#ffffff" ).DataBodyColors( "#ffa502" , "#ffffff" );
+            //await workbook.SaveAsync();
+            //Console.WriteLine("Saved");
+
+            #endregion
+
+            #region Clear a Range data
+
+            /*-----------------------------------------------------------*/
+            /* Example 16: Clear a range of cells data */
+            /*-----------------------------------------------------------*/
+            //string path = Environment.GetFolderPath(Environment.SpecialFolder.Desktop) + "\\XXXX.xlsx";
+            //var config = new WorkbookConfig()
+            //{
+            //    Extension = XLExtension.Xlsx,
+            //    Version = ExcelVersion.Version2016,
+            //    Path = path,
+            //};
+            //var workbook = new Workbook(config);
+            //workbook.LoadFromFile();
+            //// Clear a range of cells data
+            //workbook.Worksheet( "MB-WAR" ).ClearRange( "A1:A15" );
             //await workbook.SaveAsync();
             //Console.WriteLine("Saved");
 
