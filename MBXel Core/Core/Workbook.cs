@@ -119,9 +119,9 @@ namespace MBXel_Core.Core
         {
             _workBook.SaveAsXml( path );
         }
-        private void _ToStream(Stream stream)
+        private void _ToStream(Stream stream, FileFormat fileFormat)
         {
-            _workBook.SaveToStream( stream );
+            _workBook.SaveToStream( stream , fileFormat );
         }
 
         private void _LoadFromFile()
@@ -789,9 +789,10 @@ namespace MBXel_Core.Core
         /// Save the workbook to stream
         /// </summary>
         /// <param name="stream">Stream object to save the workbook in</param>
-        public Task ToStreamAsync( Stream stream )
+        /// <param name="fileFormat">File format</param>
+        public Task ToStreamAsync( Stream stream, FileFormat fileFormat = FileFormat.Version2016)
         {
-            return Task.Run( () => _ToStream( stream ) );
+            return Task.Run( () => _ToStream( stream , fileFormat ) );
         }
 
         #endregion

@@ -89,6 +89,18 @@ namespace MBXel_Core.Extensions
                 workSheet.Content.Range[1, i + 1].Text = properties[i].Name;
             }
         }
+        private static void PrepareTheWorkSheetHeaders<T, TSheetColumnsMap>(ref WorkSheet workSheet) where T : class where TSheetColumnsMap : ISheetColumnsMap<T> , new()
+        {
+            var properties = GetTypePropsOfSheet(workSheet);
+
+            var headers = new TSheetColumnsMap().CreateMap();
+
+            // Prepare column headers
+            for (int i = 0; i < properties.Length; i++)
+            {
+                workSheet.Content.Range[1 , i + 1].Text = headers[properties[i].Name];
+            }
+        }
         private static void PrepareTheWorkSheetHeaders(ref WorkSheet workSheet, IReadOnlyList<string> columnHeaders)
         {
             var properties = GetTypePropsOfSheet(workSheet);
@@ -113,11 +125,14 @@ namespace MBXel_Core.Extensions
             // Put data into worksheet
             int rowIndex = 2;
 
-            foreach (T d in data)
+            foreach (T obj in data)
             {
                 for (int i = 0; i < properties.Length; i++)
                 {
-                    workSheet.Content.Range[rowIndex, i + 1].Text = properties[i].GetValue(d).ToString();
+                    if (properties[i].GetValue(obj) != null)
+                    {
+                        workSheet.Content.Range[rowIndex , i + 1].Text = properties[i].GetValue( obj ).ToString();
+                    }
                 }
 
                 rowIndex++;
@@ -401,6 +416,10 @@ namespace MBXel_Core.Extensions
             return result;
         }
 
+        private static void _clearRange( WorkSheet workSheet , string range )
+        {
+            workSheet.Content.Range[range].ClearContents();
+        }
 
         #endregion
 
@@ -415,9 +434,25 @@ namespace MBXel_Core.Extensions
         public static WorkSheet SetData<T>(this WorkSheet workSheet, List<T> data)
         {
             ChangeTypeOfWorkSheet<T>( ref workSheet , data );
-            PrepareTheWorkSheetHeaders(ref workSheet);
-            PrepareTheWorkSheetData(ref workSheet, data);
-            StylingTheWorkSheet(ref workSheet, data.Count);
+            PrepareTheWorkSheetHeaders( ref workSheet );
+            PrepareTheWorkSheetData( ref workSheet , data );
+            StylingTheWorkSheet( ref workSheet , data.Count );
+            return workSheet;
+        }   
+        
+        /// <summary>
+        /// Fill in the worksheet with data
+        /// </summary>
+        /// <typeparam name="T">Type of data</typeparam>
+        /// <param name="workSheet">Represent <see cref="WorkSheet"/> object</param>
+        /// <param name="data">Data to be stored</param>
+        /// <returns><see cref="WorkSheet"/></returns>
+        public static WorkSheet SetData<T,TSheetColumnsMap>(this WorkSheet workSheet, List<T> data) where T : class where TSheetColumnsMap : ISheetColumnsMap<T> , new()
+        {
+            ChangeTypeOfWorkSheet<T>( ref workSheet , data );
+            PrepareTheWorkSheetHeaders<T , TSheetColumnsMap>( ref workSheet );
+            PrepareTheWorkSheetData( ref workSheet , data );
+            StylingTheWorkSheet( ref workSheet , data.Count );
             return workSheet;
         }
 
@@ -806,6 +841,19 @@ namespace MBXel_Core.Extensions
         {
             StylingTheBody( ref workSheet , backColor , fontColor , bodyStartRowIndex );
             return workSheet;
+        }
+
+
+        /// <summary>
+        /// Clear a range of cells contents
+        /// </summary>
+        /// <param name="worksheet">Represent <see cref="WorkSheet"/> object</param>
+        /// <param name="range">Cell or range of cells name</param>
+        /// <returns><see cref="WorkSheet"/></returns>
+        public static WorkSheet ClearRange( this WorkSheet worksheet , string range )
+        {
+            _clearRange( worksheet , range );
+            return worksheet;
         }
     }
 }
