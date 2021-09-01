@@ -12,6 +12,7 @@ using MBXel_Core.Core.Abstraction;
 using MBXel_Core.Core.Units;
 using MBXel_Core.Exceptions;
 using OfficeOpenXml.FormulaParsing.ExpressionGraph;
+using Spire.Pdf.HtmlConverter.Qt;
 using Spire.Xls;
 using Spire.Xls.Core.Spreadsheet;
 
@@ -421,8 +422,104 @@ namespace MBXel_Core.Extensions
             workSheet.Content.Range[range].ClearContents();
         }
 
+        private static void _StylingRange(WorkSheet workSheet, string range, RangeStyle style )
+        {
+            workSheet.Content.Range[range].Style.HorizontalAlignment = style.HorizontalAlign;
+            workSheet.Content.Range[range].Style.VerticalAlignment   = style.VerticalAlign;
+
+            workSheet.Content.Range[range].Style.Font.Color          = ColorTranslator.FromHtml(style.FontColor);
+            workSheet.Content.Range[range].Style.Interior.Color      = ColorTranslator.FromHtml(style.BackColor);
+
+            workSheet.Content.Range[range].Style.Font.Size           = style.FontSize;
+            workSheet.Content.Range[range].Style.Font.IsBold         = style.IsFontBold;
+            workSheet.Content.Range[range].Style.Font.IsItalic       = style.IsFontItalic;
+            workSheet.Content.Range[range].Style.Font.Underline      = style.FontUnderline;
+
+            workSheet.Content.Range[range].Style.Borders.LineStyle   = style.BordersLineStyle;
+            workSheet.Content.Range[range].Style.Borders.Color       = ColorTranslator.FromHtml( style.BordersColor );
+
+            workSheet.Content.Range[range].RowHeight                 = style.RowHeight;
+        }
+        private static void _StylingRange(WorkSheet workSheet, int startRow, int startColumn, int lastRow, int lastColumn, RangeStyle style)
+        {
+            workSheet.Content.Range[startRow, startColumn, lastRow, lastColumn].Style.HorizontalAlignment = style.HorizontalAlign;
+            workSheet.Content.Range[startRow, startColumn, lastRow, lastColumn].Style.VerticalAlignment   = style.VerticalAlign;
+
+            workSheet.Content.Range[startRow , startColumn , lastRow , lastColumn].Style.Font.Color = ColorTranslator.FromHtml( style.FontColor );
+            workSheet.Content.Range[startRow, startColumn, lastRow, lastColumn].Style.Interior.Color    = ColorTranslator.FromHtml(style.BackColor);
+
+            workSheet.Content.Range[startRow, startColumn, lastRow, lastColumn].Style.Font.Size         = style.FontSize;
+            workSheet.Content.Range[startRow, startColumn, lastRow, lastColumn].Style.Font.IsBold       = style.IsFontBold;
+            workSheet.Content.Range[startRow, startColumn, lastRow, lastColumn].Style.Font.IsItalic     = style.IsFontItalic;
+            workSheet.Content.Range[startRow, startColumn, lastRow, lastColumn].Style.Font.Underline    = style.FontUnderline;
+
+            workSheet.Content.Range[startRow, startColumn, lastRow, lastColumn].Style.Borders.LineStyle = style.BordersLineStyle;
+            workSheet.Content.Range[startRow, startColumn, lastRow, lastColumn].Style.Borders.Color     = ColorTranslator.FromHtml(style.BordersColor);
+
+            workSheet.Content.Range[startRow, startColumn, lastRow, lastColumn].RowHeight               = style.RowHeight;
+        }
+
+
+        private static void _MergeRange( WorkSheet workSheet , string range, string value, HorizontalAlignType horizontalAlignType, VerticalAlignType verticalAlignType, string fontColor, string backColor)
+        {
+            workSheet.Content.Range[range].Merge( true );
+            workSheet.Content.Range[range].Value                     = value;
+            workSheet.Content.Range[range].Style.HorizontalAlignment = horizontalAlignType;
+            workSheet.Content.Range[range].Style.VerticalAlignment   = verticalAlignType;
+            workSheet.Content.Range[range].Style.Font.Color          = ColorTranslator.FromHtml( fontColor );
+            workSheet.Content.Range[range].Style.Interior.Color      = ColorTranslator.FromHtml( backColor );
+        } 
+        private static void _MergeRange( WorkSheet workSheet , string range, string value, RangeStyle style)
+        {
+            workSheet.Content.Range[range].Merge( true );
+            workSheet.Content.Range[range].Value = value;
+
+            _StylingRange( workSheet , range , style );
+        }
+        private static void _MergeRangeAndSetValue( WorkSheet workSheet, string range, string value, HorizontalAlignType horizontalAlignType, VerticalAlignType verticalAlignType, string fontColor, string backColor  )
+        {
+            workSheet.Content.Range[range].Merge( true );
+            workSheet.Content.Range[range].Value                     = value;
+            workSheet.Content.Range[range].Style.HorizontalAlignment = horizontalAlignType;
+            workSheet.Content.Range[range].Style.VerticalAlignment   = verticalAlignType;
+            workSheet.Content.Range[range].Style.Font.Color          = ColorTranslator.FromHtml( fontColor );
+            workSheet.Content.Range[range].Style.Interior.Color      = ColorTranslator.FromHtml( backColor );
+        } 
+        private static void _MergeRangeAndSetValue( WorkSheet workSheet, string range, string value, RangeStyle style)
+        {
+            workSheet.Content.Range[range].Merge( true );
+            workSheet.Content.Range[range].Value = value;
+
+            _StylingRange( workSheet , range , style );
+        }
+
+        private static void _DataHeaderStyle(WorkSheet workSheet, RangeStyle style, int headerRowIndex)
+        {
+            var firstColumnIndex = workSheet.Content.FirstColumn;
+            var lastColumnIndex  = workSheet.Content.LastColumn;
+
+            _StylingRange( workSheet , headerRowIndex + 1 , firstColumnIndex , headerRowIndex + 1 , lastColumnIndex , style );
+        }
+        private static void _DataBodyStyle(WorkSheet workSheet, RangeStyle style, int bodyStartRowIndex)
+        {
+            var firstColumnIndex = workSheet.Content.FirstColumn;
+            var lastColumnIndex  = workSheet.Content.LastColumn;
+            var lastRowIndex     = workSheet.Content.LastRow;
+
+            // Body styling
+            _StylingRange( workSheet , bodyStartRowIndex + 1 , firstColumnIndex , lastRowIndex , lastColumnIndex , style );
+        }
+
+        private static void _DeleteLastUsedRow( WorkSheet workSheet )
+        {
+            var lastUsedRowIndex = workSheet.Content.LastRow;
+            workSheet.Content.DeleteRow( lastUsedRowIndex );
+        }
+
         #endregion
 
+
+        #region Public methods
 
         /// <summary>
         /// Fill in the worksheet with data
@@ -433,13 +530,13 @@ namespace MBXel_Core.Extensions
         /// <returns><see cref="WorkSheet"/></returns>
         public static WorkSheet SetData<T>(this WorkSheet workSheet, List<T> data)
         {
-            ChangeTypeOfWorkSheet<T>( ref workSheet , data );
-            PrepareTheWorkSheetHeaders( ref workSheet );
-            PrepareTheWorkSheetData( ref workSheet , data );
-            StylingTheWorkSheet( ref workSheet , data.Count );
+            ChangeTypeOfWorkSheet<T>(ref workSheet, data);
+            PrepareTheWorkSheetHeaders(ref workSheet);
+            PrepareTheWorkSheetData(ref workSheet, data);
+            StylingTheWorkSheet(ref workSheet, data.Count);
             return workSheet;
-        }   
-        
+        }
+
         /// <summary>
         /// Fill in the worksheet with data
         /// </summary>
@@ -447,12 +544,12 @@ namespace MBXel_Core.Extensions
         /// <param name="workSheet">Represent <see cref="WorkSheet"/> object</param>
         /// <param name="data">Data to be stored</param>
         /// <returns><see cref="WorkSheet"/></returns>
-        public static WorkSheet SetData<T,TSheetColumnsMap>(this WorkSheet workSheet, List<T> data) where T : class where TSheetColumnsMap : ISheetColumnsMap<T> , new()
+        public static WorkSheet SetData<T, TSheetColumnsMap>(this WorkSheet workSheet, List<T> data) where T : class where TSheetColumnsMap : ISheetColumnsMap<T>, new()
         {
-            ChangeTypeOfWorkSheet<T>( ref workSheet , data );
-            PrepareTheWorkSheetHeaders<T , TSheetColumnsMap>( ref workSheet );
-            PrepareTheWorkSheetData( ref workSheet , data );
-            StylingTheWorkSheet( ref workSheet , data.Count );
+            ChangeTypeOfWorkSheet<T>(ref workSheet, data);
+            PrepareTheWorkSheetHeaders<T, TSheetColumnsMap>(ref workSheet);
+            PrepareTheWorkSheetData(ref workSheet, data);
+            StylingTheWorkSheet(ref workSheet, data.Count);
             return workSheet;
         }
 
@@ -466,10 +563,10 @@ namespace MBXel_Core.Extensions
         /// <returns><see cref="WorkSheet"/></returns>
         public static WorkSheet SetData<T>(this WorkSheet workSheet, List<T> data, List<string> columnHeaders)
         {
-            ChangeTypeOfWorkSheet<T>( ref workSheet , data );
-            PrepareTheWorkSheetHeaders( ref workSheet , columnHeaders );
-            PrepareTheWorkSheetData( ref workSheet , data );
-            StylingTheWorkSheet( ref workSheet , data.Count );
+            ChangeTypeOfWorkSheet<T>(ref workSheet, data);
+            PrepareTheWorkSheetHeaders(ref workSheet, columnHeaders);
+            PrepareTheWorkSheetData(ref workSheet, data);
+            StylingTheWorkSheet(ref workSheet, data.Count);
             return workSheet;
         }
 
@@ -482,7 +579,7 @@ namespace MBXel_Core.Extensions
         /// <returns><see cref="WorkSheet"/></returns>
         public static WorkSheet Protect(this WorkSheet workSheet, string password)
         {
-            workSheet.Content.Protect( password );
+            workSheet.Content.Protect(password);
             return workSheet;
         }
 
@@ -495,7 +592,7 @@ namespace MBXel_Core.Extensions
         /// <returns><see cref="WorkSheet"/></returns>
         public static WorkSheet Protect(this WorkSheet workSheet, string password, SheetProtectionType protectionType)
         {
-            workSheet.Content.Protect( password , protectionType );
+            workSheet.Content.Protect(password, protectionType);
             return workSheet;
         }
 
@@ -531,7 +628,7 @@ namespace MBXel_Core.Extensions
         /// <returns><see cref="WorkSheet"/></returns>
         public static WorkSheet TabColor(this WorkSheet workSheet, string colorAsHex)
         {
-            workSheet.Content.TabColor = ColorTranslator.FromHtml( colorAsHex );
+            workSheet.Content.TabColor = ColorTranslator.FromHtml(colorAsHex);
             return workSheet;
         }
 
@@ -555,7 +652,7 @@ namespace MBXel_Core.Extensions
         /// <returns><see cref="WorkSheet"/></returns>
         public static WorkSheet FreezeHeadersPane(this WorkSheet workSheet)
         {
-            workSheet.Content.FreezePanes( 2 , 1 );
+            workSheet.Content.FreezePanes(2, 1);
             return workSheet;
         }
 
@@ -567,7 +664,7 @@ namespace MBXel_Core.Extensions
         /// <returns><see cref="WorkSheet"/></returns>
         public static WorkSheet FreezeHeadersPane(this WorkSheet workSheet, int rowIndex)
         {
-            workSheet.Content.FreezePanes( rowIndex+2 , 1 );
+            workSheet.Content.FreezePanes(rowIndex + 2, 1);
             return workSheet;
         }
 
@@ -580,7 +677,7 @@ namespace MBXel_Core.Extensions
         /// <returns><see cref="WorkSheet"/></returns>
         public static WorkSheet DeleteColumn(this WorkSheet workSheet, int columnIndex)
         {
-            workSheet.Content.DeleteColumn( columnIndex );
+            workSheet.Content.DeleteColumn(columnIndex);
             return workSheet;
         }
 
@@ -593,7 +690,7 @@ namespace MBXel_Core.Extensions
         /// <returns><see cref="WorkSheet"/></returns>
         public static WorkSheet DeleteColumn(this WorkSheet workSheet, int columnIndex, int count)
         {
-            workSheet.Content.DeleteColumn( columnIndex , count );
+            workSheet.Content.DeleteColumn(columnIndex, count);
             return workSheet;
         }
 
@@ -606,7 +703,7 @@ namespace MBXel_Core.Extensions
         /// <returns><see cref="WorkSheet"/></returns>
         public static WorkSheet DeleteRow(this WorkSheet workSheet, int rowIndex)
         {
-            workSheet.Content.DeleteRow( rowIndex + 1 );
+            workSheet.Content.DeleteRow(rowIndex + 1);
             return workSheet;
         }
 
@@ -619,7 +716,7 @@ namespace MBXel_Core.Extensions
         /// <returns><see cref="WorkSheet"/></returns>
         public static WorkSheet DeleteRow(this WorkSheet workSheet, int rowIndex, int count)
         {
-            workSheet.Content.DeleteRow( rowIndex + 1 , count );
+            workSheet.Content.DeleteRow(rowIndex + 1, count);
             return workSheet;
         }
 
@@ -632,9 +729,9 @@ namespace MBXel_Core.Extensions
         /// <param name="headerRowIndex">Index of the data table header row</param>
         /// <param name="ignoreObjectIfOnePropertyHasNoValue">Determine if want to ignore objects that one of its properties has no value</param>
         /// <returns><see cref="Task{TResult}"/></returns>
-        public static Task<List<T>> SelectAsync<T>(this WorkSheet workSheet, int headerRowIndex = 0, bool ignoreObjectIfOnePropertyHasNoValue = false) where T : class , new()
+        public static Task<List<T>> SelectAsync<T>(this WorkSheet workSheet, int headerRowIndex = 0, bool ignoreObjectIfOnePropertyHasNoValue = false) where T : class, new()
         {
-            return Task.Factory.StartNew( () => Select<T>( workSheet, headerRowIndex, ignoreObjectIfOnePropertyHasNoValue ) );
+            return Task.Factory.StartNew(() => Select<T>(workSheet, headerRowIndex, ignoreObjectIfOnePropertyHasNoValue));
         }
 
         /// <summary>
@@ -646,9 +743,9 @@ namespace MBXel_Core.Extensions
         /// <param name="headerRowIndex">Index of the data table header row</param>
         /// <param name="ignoreObjectIfOnePropertyHasNoValue">Determine if want to ignore objects that one of its properties has no value</param>
         /// <returns><see cref="Task{TResult}"/></returns>
-        public static Task<List<T>> SelectAsync<T>(this WorkSheet workSheet, Expression<Func<T, object>> usedPropertiesExpression, int headerRowIndex = 0, bool ignoreObjectIfOnePropertyHasNoValue = false) where T : class , new()
+        public static Task<List<T>> SelectAsync<T>(this WorkSheet workSheet, Expression<Func<T, object>> usedPropertiesExpression, int headerRowIndex = 0, bool ignoreObjectIfOnePropertyHasNoValue = false) where T : class, new()
         {
-            return Task.Factory.StartNew( () => Select<T>( workSheet , usedPropertiesExpression, headerRowIndex, ignoreObjectIfOnePropertyHasNoValue) );
+            return Task.Factory.StartNew(() => Select<T>(workSheet, usedPropertiesExpression, headerRowIndex, ignoreObjectIfOnePropertyHasNoValue));
         }
 
         /// <summary>
@@ -660,9 +757,9 @@ namespace MBXel_Core.Extensions
         /// <param name="headerRowIndex">Index of the data table header row</param>
         /// <param name="ignoreObjectIfOnePropertyHasNoValue">Determine if want to ignore objects that one of its properties has no value</param>
         /// <returns><see cref="Task{TResult}"/></returns>
-        public static Task<List<T>> SelectAsync<T, TSheetColumnsMap>(this WorkSheet workSheet, int headerRowIndex = 0, bool ignoreObjectIfOnePropertyHasNoValue = false) where T : class , new() where TSheetColumnsMap : ISheetColumnsMap<T>, new()
+        public static Task<List<T>> SelectAsync<T, TSheetColumnsMap>(this WorkSheet workSheet, int headerRowIndex = 0, bool ignoreObjectIfOnePropertyHasNoValue = false) where T : class, new() where TSheetColumnsMap : ISheetColumnsMap<T>, new()
         {
-            return Task.Factory.StartNew( () => Select<T>( workSheet, headerRowIndex, ignoreObjectIfOnePropertyHasNoValue) );
+            return Task.Factory.StartNew(() => Select<T>(workSheet, headerRowIndex, ignoreObjectIfOnePropertyHasNoValue));
         }
 
         /// <summary>
@@ -675,11 +772,11 @@ namespace MBXel_Core.Extensions
         /// <param name="headerRowIndex">Index of the data table header row</param>
         /// <param name="ignoreObjectIfOnePropertyHasNoValue">Determine if want to ignore objects that one of its properties has no value</param>
         /// <returns><see cref="Task{TResult}"/></returns>
-        public static Task<List<T>> SelectAsync<T, TSheetColumnsMap>(this WorkSheet workSheet, Expression<Func<T, object>> usedPropertiesExpression, int headerRowIndex = 0, bool ignoreObjectIfOnePropertyHasNoValue = false) where T : class , new() where TSheetColumnsMap : ISheetColumnsMap<T>, new()
+        public static Task<List<T>> SelectAsync<T, TSheetColumnsMap>(this WorkSheet workSheet, Expression<Func<T, object>> usedPropertiesExpression, int headerRowIndex = 0, bool ignoreObjectIfOnePropertyHasNoValue = false) where T : class, new() where TSheetColumnsMap : ISheetColumnsMap<T>, new()
         {
-            return Task.Factory.StartNew( () => Select<T , TSheetColumnsMap>( workSheet , usedPropertiesExpression,headerRowIndex, ignoreObjectIfOnePropertyHasNoValue) );
-        }    
-        
+            return Task.Factory.StartNew(() => Select<T, TSheetColumnsMap>(workSheet, usedPropertiesExpression, headerRowIndex, ignoreObjectIfOnePropertyHasNoValue));
+        }
+
 
         /// <summary>
         /// Lock a cell or a range of cells
@@ -713,9 +810,9 @@ namespace MBXel_Core.Extensions
         /// <param name="range">Cell or range of cells name</param>
         /// <param name="title">Title</param>
         /// <returns><see cref="WorkSheet"/></returns>
-        public static WorkSheet AllowEditRange(this WorkSheet workSheet, string range, string title="allowed range")
+        public static WorkSheet AllowEditRange(this WorkSheet workSheet, string range, string title = "allowed range")
         {
-            workSheet.Content.AddAllowEditRange( title, workSheet.Content.Range[range]);
+            workSheet.Content.AddAllowEditRange(title, workSheet.Content.Range[range]);
             return workSheet;
         }
 
@@ -727,9 +824,9 @@ namespace MBXel_Core.Extensions
         /// <param name="pdfPath">Path to save the PDF in</param>
         public static Task ToPdfAsync(this WorkSheet workSheet, string pdfPath)
         {
-            return Task.Factory.StartNew( () => workSheet.Content.SaveToPdf( pdfPath , FileFormat.PDF ) );
-        }  
-        
+            return Task.Factory.StartNew(() => workSheet.Content.SaveToPdf(pdfPath, FileFormat.PDF));
+        }
+
         /// <summary>
         /// Save the worksheet as a Image file
         /// </summary>
@@ -737,7 +834,7 @@ namespace MBXel_Core.Extensions
         /// <param name="pdfPath">Path to save the image in</param>
         public static Task ToImage(this WorkSheet workSheet, string pdfPath)
         {
-            return Task.Factory.StartNew( () => workSheet.Content.SaveToImage( pdfPath , ImageFormat.Jpeg ) );
+            return Task.Factory.StartNew(() => workSheet.Content.SaveToImage(pdfPath, ImageFormat.Jpeg));
         }
 
         /// <summary>
@@ -748,7 +845,7 @@ namespace MBXel_Core.Extensions
         /// <param name="format">Image format</param>
         public static Task ToImage(this WorkSheet workSheet, string pdfPath, ImageFormat format)
         {
-            return Task.Factory.StartNew( () => workSheet.Content.SaveToImage( pdfPath , format ) );
+            return Task.Factory.StartNew(() => workSheet.Content.SaveToImage(pdfPath, format));
         }
 
         /// <summary>
@@ -757,7 +854,7 @@ namespace MBXel_Core.Extensions
         /// <param name="workSheet">Represent <see cref="WorkSheet"/> object</param>
         /// <param name="path">Path to save the .html file in</param>
         /// <returns><see cref="Task"/></returns>
-        public static Task ToHtmlAsync( this WorkSheet workSheet , string path ) => Task.Factory.StartNew( () => workSheet.Content.SaveToHtml( path ) );
+        public static Task ToHtmlAsync(this WorkSheet workSheet, string path) => Task.Factory.StartNew(() => workSheet.Content.SaveToHtml(path));
 
 
         /// <summary>
@@ -768,9 +865,9 @@ namespace MBXel_Core.Extensions
         /// <param name="lastColumn">The last column index to be grouped</param>
         /// <param name="isCollapsed">Indicates whether group should be collapsed</param>
         /// <returns><see cref="WorkSheet"/></returns>
-        public static WorkSheet GroupColumns(this WorkSheet workSheet, int firstColumn, int lastColumn, bool isCollapsed=true)
+        public static WorkSheet GroupColumns(this WorkSheet workSheet, int firstColumn, int lastColumn, bool isCollapsed = true)
         {
-            workSheet.Content.GroupByColumns(firstColumn + 1 , lastColumn + 1 , isCollapsed );
+            workSheet.Content.GroupByColumns(firstColumn + 1, lastColumn + 1, isCollapsed);
             return workSheet;
         }
 
@@ -783,10 +880,10 @@ namespace MBXel_Core.Extensions
         /// <returns><see cref="WorkSheet"/></returns>
         public static WorkSheet UngroupColumns(this WorkSheet workSheet, int firstColumn, int lastColumn)
         {
-            workSheet.Content.UngroupByColumns( firstColumn + 1 , lastColumn + 1 );
+            workSheet.Content.UngroupByColumns(firstColumn + 1, lastColumn + 1);
             return workSheet;
-        }   
-        
+        }
+
         /// <summary>
         /// Groups rows
         /// </summary>
@@ -795,9 +892,9 @@ namespace MBXel_Core.Extensions
         /// <param name="lastRow">The last row index to be grouped</param>
         /// <param name="isCollapsed">Indicates whether group should be collapsed</param>
         /// <returns><see cref="WorkSheet"/></returns>
-        public static WorkSheet GroupRows(this WorkSheet workSheet, int firstRow, int lastRow, bool isCollapsed=true)
+        public static WorkSheet GroupRows(this WorkSheet workSheet, int firstRow, int lastRow, bool isCollapsed = true)
         {
-            workSheet.Content.GroupByRows( firstRow + 1 , lastRow + 1 , isCollapsed );
+            workSheet.Content.GroupByRows(firstRow + 1, lastRow + 1, isCollapsed);
             return workSheet;
         }
 
@@ -810,7 +907,7 @@ namespace MBXel_Core.Extensions
         /// <returns><see cref="WorkSheet"/></returns>
         public static WorkSheet UngroupRows(this WorkSheet workSheet, int firstRow, int lastRow)
         {
-            workSheet.Content.UngroupByRows( firstRow + 1 , lastRow + 1 );
+            workSheet.Content.UngroupByRows(firstRow + 1, lastRow + 1);
             return workSheet;
         }
 
@@ -825,10 +922,37 @@ namespace MBXel_Core.Extensions
         /// <returns><see cref="WorkSheet"/></returns>
         public static WorkSheet DataHeaderColors(this WorkSheet workSheet, string backColor, string fontColor, int headerRowIndex = 0)
         {
-            StylingTheHeader( ref workSheet , backColor , fontColor , headerRowIndex );
+            StylingTheHeader(ref workSheet, backColor, fontColor, headerRowIndex);
             return workSheet;
         }
 
+        /// <summary>
+        /// Styling worksheet data table header cells
+        /// </summary>
+        /// <param name="workSheet">Represent <see cref="WorkSheet"/> object</param>
+        /// <param name="style">Range style</param>
+        /// <param name="headerRowIndex">The index of header row</param>
+        /// <returns><see cref="WorkSheet"/></returns>
+        public static WorkSheet DataHeaderStyle( this WorkSheet workSheet , RangeStyle style , int headerRowIndex = 0 )
+        {
+            _DataHeaderStyle( workSheet , style , headerRowIndex );
+            return workSheet;
+        }
+
+
+        /// <summary>
+        /// Set the data table body with a custom colors
+        /// </summary>
+        /// <param name="workSheet">Represent <see cref="WorkSheet"/> object</param>
+        /// <param name="style">Range style</param>
+        /// <param name="bodyStartRowIndex">The index of row that body start from</param>
+        /// <returns><see cref="WorkSheet"/></returns>
+        public static WorkSheet DataBodyStyle(this WorkSheet workSheet, RangeStyle style, int bodyStartRowIndex = 1)
+        {
+            _DataBodyStyle( workSheet , style , bodyStartRowIndex );
+            return workSheet;
+        } 
+        
         /// <summary>
         /// Set the data table body with a custom colors
         /// </summary>
@@ -839,7 +963,7 @@ namespace MBXel_Core.Extensions
         /// <returns><see cref="WorkSheet"/></returns>
         public static WorkSheet DataBodyColors(this WorkSheet workSheet, string backColor, string fontColor, int bodyStartRowIndex = 1)
         {
-            StylingTheBody( ref workSheet , backColor , fontColor , bodyStartRowIndex );
+            StylingTheBody(ref workSheet, backColor, fontColor, bodyStartRowIndex);
             return workSheet;
         }
 
@@ -847,13 +971,105 @@ namespace MBXel_Core.Extensions
         /// <summary>
         /// Clear a range of cells contents
         /// </summary>
-        /// <param name="worksheet">Represent <see cref="WorkSheet"/> object</param>
+        /// <param name="workSheet">Represent <see cref="WorkSheet"/> object</param>
         /// <param name="range">Cell or range of cells name</param>
         /// <returns><see cref="WorkSheet"/></returns>
-        public static WorkSheet ClearRange( this WorkSheet worksheet , string range )
+        public static WorkSheet ClearRange(this WorkSheet workSheet, string range)
         {
-            _clearRange( worksheet , range );
-            return worksheet;
+            _clearRange(workSheet, range);
+            return workSheet;
         }
+
+
+        /// <summary>
+        /// Creates a merged cell from a specified range
+        /// </summary>
+        /// <param name="workSheet">Represent <see cref="WorkSheet"/> object</param>
+        /// <param name="range">Cell or range of cells name</param>
+        /// <param name="value">Value of merged range</param>
+        /// <param name="horizontalAlignType">Text horizontal alignment</param>
+        /// <param name="verticalAlignType">Text vertical alignment</param>
+        /// <param name="fontColor">Font color</param>
+        /// <param name="backColor">Background color</param>
+        /// <returns><see cref="WorkSheet"/></returns>
+        public static WorkSheet MergeRange(this WorkSheet workSheet , string range, string value="", HorizontalAlignType horizontalAlignType = HorizontalAlignType.Left, VerticalAlignType verticalAlignType = VerticalAlignType.Bottom, string fontColor = "#000000", string backColor = "#FFFFFF")
+        {
+            _MergeRange( workSheet , range , value , horizontalAlignType , verticalAlignType , fontColor , backColor );
+            return workSheet;
+        }
+
+        /// <summary>
+        /// Creates a merged cell from a specified range
+        /// </summary>
+        /// <param name="workSheet">Represent <see cref="WorkSheet"/> object</param>
+        /// <param name="range">Cell or range of cells name</param>
+        /// <param name="style">Range style</param>
+        /// <param name="value">Value of merged range</param>
+        /// <returns><see cref="WorkSheet"/></returns>
+        public static WorkSheet MergeRange(this WorkSheet workSheet , string range, RangeStyle style, string value= "")
+        {
+            _MergeRange( workSheet , range , value , style );
+            return workSheet;
+        }
+
+      
+        /// <summary>
+        /// Creates a merged cell from a specified range and set its value
+        /// </summary>
+        /// <param name="workSheet">Represent <see cref="WorkSheet"/> object</param>
+        /// <param name="range">Cell or range of cells name</param>
+        /// <param name="value">Value</param>
+        /// <param name="horizontalAlignType">Text horizontal alignment</param>
+        /// <param name="verticalAlignType">Text vertical alignment</param>
+        /// <param name="fontColor">Font color</param>
+        /// <param name="backColor">Background color</param>
+        /// <returns><see cref="WorkSheet"/></returns>
+        public static WorkSheet MergeRangeAndSetValue(this WorkSheet workSheet, string range, string value, HorizontalAlignType horizontalAlignType = HorizontalAlignType.Left, VerticalAlignType verticalAlignType = VerticalAlignType.Bottom, string fontColor = "#000000", string backColor = "#FFFFFF")
+        {
+            _MergeRangeAndSetValue( workSheet , range , value , horizontalAlignType , verticalAlignType , fontColor , backColor );
+            return workSheet;
+        }
+
+        /// <summary>
+        /// Creates a merged cell from a specified range and set its value
+        /// </summary>
+        /// <param name="workSheet">Represent <see cref="WorkSheet"/> object</param>
+        /// <param name="range">Cell or range of cells name</param>
+        /// <param name="value">Value</param>
+        /// <param name="style">Range style</param>
+        /// <returns><see cref="WorkSheet"/></returns>
+        public static WorkSheet MergeRangeAndSetValue(this WorkSheet workSheet, string range, string value, RangeStyle style)
+        {
+            _MergeRangeAndSetValue( workSheet , range , value , style );
+            return workSheet;
+        }
+
+
+        /// <summary>
+        /// Styling a range of cells
+        /// </summary>
+        /// <param name="workSheet">Represent <see cref="WorkSheet"/> object</param>
+        /// <param name="range">Cell or range of cells name</param>
+        /// <param name="style">Range style</param>
+        /// <returns><see cref="WorkSheet"/></returns>
+        public static WorkSheet StylingRange(this WorkSheet workSheet, string range, RangeStyle style)
+        {
+            _StylingRange( workSheet , range , style );
+            return workSheet;
+        }
+
+        /// <summary>
+        /// Delete the last used row
+        /// </summary>
+        /// <param name="workSheet">Represent <see cref="WorkSheet"/> object</param>
+        /// <returns><see cref="WorkSheet"/></returns>
+        public static WorkSheet DeleteLastUsedRow( this WorkSheet workSheet )
+        {
+            _DeleteLastUsedRow( workSheet );
+            return workSheet;
+        }
+
+        #endregion
+
     }
 }
