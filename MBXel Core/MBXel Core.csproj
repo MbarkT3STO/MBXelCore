@@ -4,7 +4,7 @@
     <OutputType>Exe</OutputType>
     <TargetFramework>net5.0</TargetFramework>
     <RootNamespace>MBXel_Core</RootNamespace>
-    <Description>Free and Open-source library to Export and Import data as Excel file</Description>
+    <Description>Free and Open-source library to Export and Import data As/From/To Excel file</Description>
     <Copyright>MB-WAR</Copyright>
     <RepositoryUrl>https://dev.azure.com/MB-Solutions/_git/MBXelCore</RepositoryUrl>
     <PackageProjectUrl>https://dev.azure.com/MB-Solutions/MBXelCore</PackageProjectUrl>
