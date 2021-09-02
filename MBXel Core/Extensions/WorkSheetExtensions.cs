@@ -510,10 +510,20 @@ namespace MBXel_Core.Extensions
             _StylingRange( workSheet , bodyStartRowIndex + 1 , firstColumnIndex , lastRowIndex , lastColumnIndex , style );
         }
 
+        private static void _DeleteFirstUsedRow( WorkSheet workSheet )
+        {
+            var firstUsedRow = workSheet.Content.FirstRow;
+            workSheet.Content.DeleteRow( firstUsedRow );
+        }
         private static void _DeleteLastUsedRow( WorkSheet workSheet )
         {
             var lastUsedRowIndex = workSheet.Content.LastRow;
             workSheet.Content.DeleteRow( lastUsedRowIndex );
+        }
+
+        private static void _DeleteRow(WorkSheet workSheet, int index)
+        {
+            workSheet.Content.DeleteRow( index );
         }
 
         #endregion
@@ -1058,6 +1068,17 @@ namespace MBXel_Core.Extensions
             return workSheet;
         }
 
+
+        /// <summary>
+        /// Delete the first used row
+        /// </summary>
+        /// <param name="workSheet">Represent <see cref="WorkSheet"/> object</param>
+        /// <returns><see cref="WorkSheet"/></returns>
+        public static WorkSheet DeleteFirstUsedRow( this WorkSheet workSheet )
+        {
+            _DeleteFirstUsedRow( workSheet );
+            return workSheet;
+        } 
         /// <summary>
         /// Delete the last used row
         /// </summary>
@@ -1068,6 +1089,7 @@ namespace MBXel_Core.Extensions
             _DeleteLastUsedRow( workSheet );
             return workSheet;
         }
+
 
         #endregion
 

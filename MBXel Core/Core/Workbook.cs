@@ -1,16 +1,18 @@
-﻿using System;
+﻿using LinqToExcel;
+
+using MBXel_Core.Core.Abstraction;
+using MBXel_Core.Core.Units;
+using MBXel_Core.Exceptions;
+
+using Spire.Xls;
+
+using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Runtime.InteropServices.ComTypes;
 using System.Threading.Tasks;
-using LinqToExcel;
-using MBXel_Core.Core.Abstraction;
-using MBXel_Core.Core.Units;
-using MBXel_Core.Exceptions;
-using Spire.Xls;
 
 namespace MBXel_Core.Core
 {
@@ -32,6 +34,11 @@ namespace MBXel_Core.Core
         #region Public properties
 
         public IWorkbookConfig Configuration { get; set; } = new WorkbookConfig();
+
+        /// <summary>
+        /// Represents the workbook core with the full functions and properties
+        /// </summary>
+        public Spire.Xls.Workbook Core => _workBook;
 
         #endregion
 
