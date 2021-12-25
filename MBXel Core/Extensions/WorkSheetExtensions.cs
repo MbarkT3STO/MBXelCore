@@ -526,6 +526,11 @@ namespace MBXel_Core.Extensions
             workSheet.Content.DeleteRow( index );
         }
 
+        private static void _SetRangeValue(WorkSheet workSheet,  string rangeName, object rangeValue)
+        {
+            workSheet.Content.Range[rangeName].Value = rangeValue.ToString();
+        }
+
         #endregion
 
 
@@ -1087,6 +1092,20 @@ namespace MBXel_Core.Extensions
         public static WorkSheet DeleteLastUsedRow( this WorkSheet workSheet )
         {
             _DeleteLastUsedRow( workSheet );
+            return workSheet;
+        }
+
+
+        /// <summary>
+        /// Set value for a range
+        /// </summary>
+        /// <param name="workSheet">Represent <see cref="WorkSheet"/> object</param>
+        /// <param name="rangeName">Range name</param>
+        /// <param name="rangeValue">Range value</param>
+        /// <returns><see cref="WorkSheet"/></returns>
+        public static WorkSheet SetRangeValue(this WorkSheet workSheet, string rangeName, object rangeValue)
+        {
+            _SetRangeValue( workSheet , rangeName , rangeValue );
             return workSheet;
         }
 
