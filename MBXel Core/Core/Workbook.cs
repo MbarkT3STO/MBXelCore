@@ -204,6 +204,11 @@ namespace MBXel_Core.Core
             _workBook.Version = version;
         }
 
+        private void _DeleteWorkBook(string path)
+        {
+            File.Delete( path );
+        }
+
         #endregion
 
         #region Worksheet
@@ -801,6 +806,23 @@ namespace MBXel_Core.Core
         {
             return Task.Run( () => _ToStream( stream , fileFormat ) );
         }
+
+        #endregion
+
+        #region Delete
+
+        /// <summary>
+        /// Delete the workbook
+        /// </summary>
+        public void Delete()
+        {
+            _DeleteWorkBook( Configuration.Path );
+        }
+
+        /// <summary>
+        /// Asynchronously delete the workbook
+        /// </summary>
+        public Task DeleteAsync() => Task.Run( () => _DeleteWorkBook( Configuration.Path ) );
 
         #endregion
 
