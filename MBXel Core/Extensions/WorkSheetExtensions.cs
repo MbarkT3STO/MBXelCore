@@ -143,7 +143,7 @@ namespace MBXel_Core.Extensions
         private static void StylingTheWorkSheet(ref WorkSheet workSheet, int rowsNumber)
         {
             var lastColumnIndex = workSheet.Content.LastColumn;
-            var lastRowIndex    = workSheet.Content.LastRow;
+            var lastRowIndex    = workSheet.Content.LastRow == 1 ? 2 : workSheet.Content.LastRow;
 
             //Columns styling
             workSheet.Content.Range[1 , 1 , 1 , lastColumnIndex].Style.Font.Size = 14;
